@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, memo } from 'react';
+import { useEffect, useState, useRef, useCallback, memo, useMemo } from 'react';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -40,6 +40,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const upsertTask = useStore(s => s.upsertTask);
   const upsertTag = useStore(s => s.upsertTag);
   const softDeleteTask = useStore(s => s.softDeleteTask);
+  const upsertMilestone = useStore(s => s.upsertMilestone);
 
   const isEdit = !!task.id;
   const draftId = task.id || '__new__';
@@ -68,6 +69,10 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const loadTaskActivity = useStore(s => s.loadTaskActivity);
   const [tDetailTab, setTDetailTab] = useState('sub');
   const [activity, setActivity] = useState([]);
+  const [s3Tab, setS3Tab] = useState('milestone');
+  const [linkMsId, setLinkMsId] = useState('');
+  const [linkSsId, setLinkSsId] = useState('');
+  const [showMsPicker, setShowMsPicker] = useState(false);
   const taskIdRef = useRef(task.id || null);
   const [saveStatus, setSaveStatus] = useState(task.id ? 'idle' : 'idle');
   const debounceRef = useRef(null);
@@ -107,6 +112,17 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
   const [tab, setTab] = useState('essentials');
   const hasDetailContent = isEdit && (task.notes || (task.tags?.length > 0) || (task.subtasks?.length > 0) || (task.links?.length > 0));
+
+  const linkedMilestone = useMemo(() => {
+    const tid = task.id || taskIdRef.current;
+    if (!tid) return null;
+    for (const ms of S.milestones) {
+      for (const ss of (ms.substeps || [])) {
+        if ((ss.linkedTasks || []).some(lt => lt.taskId === tid)) return { milestone: ms, substep: ss };
+      }
+    }
+    return null;
+  }, [task.id, S.milestones]);
 
   useEffect(() => { taskNameRef.current?.focus(); }, []);
 
@@ -387,6 +403,54 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     setLinks(links.filter((_, idx) => idx !== i));
   };
 
+  const handleLinkTask = async () => {
+    const tid = task.id || taskIdRef.current;
+    if (!linkSsId || !linkMsId || !tid) return;
+    const ms = S.milestones.find(m => m.id === linkMsId);
+    if (!ms) return;
+    const updated = {
+      ...ms,
+      substeps: ms.substeps.map(s => s.id === linkSsId ? {
+        ...s,
+        linkedTasks: [...(s.linkedTasks||[]), { taskId: tid, showOnDashboard: true }]
+      } : s)
+    };
+    await upsertMilestone(updated);
+    setLinkMsId('');
+    setLinkSsId('');
+    setShowMsPicker(false);
+  };
+
+  const handleOpenPicker = () => {
+    if (linkedMilestone) {
+      setLinkMsId(linkedMilestone.milestone.id);
+      setLinkSsId(linkedMilestone.substep.id);
+    }
+    setShowMsPicker(true);
+  };
+
+  const handleCancelPicker = () => {
+    setLinkMsId('');
+    setLinkSsId('');
+    setShowMsPicker(false);
+  };
+
+  const handleUnlinkTask = async () => {
+    if (!linkedMilestone) return;
+    const tid = task.id || taskIdRef.current;
+    if (!tid) return;
+    const { milestone, substep } = linkedMilestone;
+    const updated = {
+      ...milestone,
+      substeps: milestone.substeps.map(s => s.id === substep.id ? {
+        ...s,
+        linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== tid)
+      } : s)
+    };
+    await upsertMilestone(updated);
+    setShowMsPicker(false);
+  };
+
   const del = async () => {
     if (!confirm('Delete this task? It moves to Deleted Tasks where you can recover it.')) return;
     await softDeleteTask(task.id);
@@ -425,6 +489,10 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
           <button className={`modal-section-tab${tab==='details'?' active':''}`} onClick={()=>setTab('details')}>
             Section 2 &mdash; Details
             {hasDetailContent && <span className="badge-dot" />}
+          </button>
+          <button className={`modal-section-tab${tab==='s3'?' active':''}`} onClick={()=>setTab('s3')}>
+            Section 3 &mdash; More
+            {linkedMilestone && <span className="s3-count-badge">1</span>}
           </button>
         </div>
 
@@ -632,6 +700,94 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ── Section 3 — More ── */}
+        <div className={`modal-section${tab==='s3'?' active':''}`}>
+          <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}}>
+            {[
+              { id:'milestone', label:'Milestone' },
+              { id:'checklist', label:'Checklist' },
+              { id:'batch', label:'Batch task' },
+            ].map(st => {
+              const isActive = st.id === 'milestone';
+              return (
+                <button key={st.id}
+                  className={`s3-subtab${s3Tab===st.id?' active':''}${!isActive?' coming-soon':''}`}
+                  onClick={isActive ? () => setS3Tab(st.id) : undefined}>
+                  {st.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {s3Tab === 'milestone' && (
+            <div>
+              {!(task.id || taskIdRef.current) ? (
+                <div style={{color:'var(--t3)',padding:'8px 0',fontSize:12}}>Save the task first to link it to a milestone.</div>
+              ) : showMsPicker ? (
+                <div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                    <span style={{fontSize:12,fontWeight:600,color:'var(--t2)'}}>{linkedMilestone ? 'Change milestone' : 'Link to milestone'}</span>
+                    <button className="btn btn-xs" onClick={handleCancelPicker} style={{marginLeft:'auto'}}>Cancel</button>
+                  </div>
+                  <label className="fl" style={{marginTop:0}}>Select milestone</label>
+                  <select value={linkMsId} onChange={e=>{setLinkMsId(e.target.value);setLinkSsId('')}} style={{width:'100%',marginBottom:8}}>
+                    <option value="">— Choose —</option>
+                    {S.milestones.filter(m => !m.deleted).map(m => (
+                      <option key={m.id} value={m.id}>{m.title}</option>
+                    ))}
+                  </select>
+                  {linkMsId && (
+                    <>
+                      <label className="fl" style={{marginTop:0}}>Select substep</label>
+                      <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:8}}>
+                        {(S.milestones.find(m => m.id === linkMsId)?.substeps||[]).map(ss => (
+                          <label key={ss.id} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',cursor:'pointer',background:linkSsId===ss.id?'var(--al)':'var(--surface)'}}>
+                            <input type="radio" name="ss" checked={linkSsId===ss.id} onChange={()=>setLinkSsId(ss.id)} />
+                            <span style={{fontSize:13}}>{ss.title || '(Untitled)'}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <button className="btn btn-sm" disabled={!linkSsId} onClick={handleLinkTask}>Link Task</button>
+                </div>
+              ) : linkedMilestone ? (
+                <div className="ms-linked-card">
+                  <div className="ms-linked-header">
+                    <div className="ms-linked-icon">◆</div>
+                    <span className="ms-linked-name">{linkedMilestone.milestone.title}</span>
+                  </div>
+                  <div className="ms-linked-body">
+                    <div className="ms-sub-row">
+                      <div className="ms-sub-icon">⊞</div>
+                      <div>
+                        <p className="ms-sub-label">Substep</p>
+                        <p className="ms-sub-name">{linkedMilestone.substep.title}</p>
+                      </div>
+                    </div>
+                    <div className="ms-link-actions">
+                      <button className="ms-link-btn" onClick={handleOpenPicker}>
+                        ↔ Change milestone
+                      </button>
+                      <button className="ms-link-btn unlink" onClick={handleUnlinkTask}>
+                        ⊘ Unlink
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="ms-empty">
+                  <div style={{fontSize:28,color:'var(--t3)',lineHeight:1}}>◆</div>
+                  <p>This task is not linked to any milestone yet.</p>
+                  <button className="ms-empty-btn" onClick={handleOpenPicker}>
+                    + Link to a milestone
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {limitError && <div style={{marginTop:10,padding:'8px 12px',background:'#d32f2f22',border:'1px solid #d32f2f',borderRadius:6,color:'#d32f2f',fontSize:13,fontWeight:600}}>

@@ -29,3 +29,15 @@ export function filterDashboardTasks(tasks, milestones) {
   if (!milestones || !milestones.length) return tasks;
   return tasks.filter(t => !isTaskHiddenBySubstep(t.id, milestones));
 }
+
+export function getTaskMilestoneLink(taskId, milestones) {
+  if (!taskId || !milestones) return null;
+  for (const ms of milestones) {
+    if (ms.deleted) continue;
+    for (const ss of (ms.substeps || [])) {
+      const link = (ss.linkedTasks || []).find(lt => lt.taskId === taskId);
+      if (link) return { milestone: ms, substep: ss, link };
+    }
+  }
+  return null;
+}

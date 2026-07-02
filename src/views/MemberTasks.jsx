@@ -5,7 +5,7 @@ import { today, fmtD, taskTimeStr } from '../lib/constants';
 import { getStatusMaps, getCompleteStatus, getReviewStatus, getPassStatus } from '../utils/statusUtils';
 import { canCreateTask, getDailyActiveCount, getDailyLimit } from '../utils/taskLimits';
 import { getNotesText } from '../utils/notesUtils';
-import { getMilestonesForMemberToday, filterDashboardTasks } from '../utils/milestoneHelpers';
+import { getMilestonesForMemberToday, filterDashboardTasks, getTaskMilestoneLink } from '../utils/milestoneHelpers';
 import Avatar from '../components/Avatar';
 import TaskModal from '../components/TaskModal';
 import TaskSidePanel from '../components/TaskSidePanel';
@@ -490,6 +490,7 @@ function TaskCard({ task, S, STC, STB, onClick }) {
   const subTotal = task.subtasks?.length || 0;
   const subDone = task.subtasks?.filter(s => s.done).length || 0;
   const hasLinks = task.links?.length > 0;
+  const msLink = useMemo(() => getTaskMilestoneLink(task.id, S.milestones), [task.id, S.milestones]);
   const cardHover = (e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; };
   const cardLeave = (e) => { e.currentTarget.style.boxShadow = 'none'; };
   return (
@@ -525,6 +526,7 @@ function TaskCard({ task, S, STC, STB, onClick }) {
           </span>
         )}
         <span style={{ color: 'var(--t3)' }}>{task.date}</span>
+        {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
         {sender && (
           <span style={{ color: 'var(--t3)', fontWeight: 500 }}>
             from {sender.name}
@@ -558,6 +560,7 @@ const MTaskCard = ({ task, S, onOpenTask, onStatus, onHide }) => {
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
   const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const msLink = useMemo(() => getTaskMilestoneLink(task.id, S.milestones), [task.id, S.milestones]);
 
   return (
     <div className={`tcard${extra}`} onClick={() => onOpenTask(task)}>
@@ -579,6 +582,7 @@ const MTaskCard = ({ task, S, onOpenTask, onStatus, onHide }) => {
             title="Hide">✕</button>
         )}
       </div>
+      {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
       {task.tags?.length > 0 && (
         <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 3 }}>
           {task.tags.map(tid => { const tg = sel.gtag(S, tid); return tg ? <span key={tid} className="ttag-chip">{tg.label}</span> : null; })}

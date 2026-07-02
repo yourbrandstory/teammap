@@ -4,6 +4,7 @@ import { useUIStore } from '../store/useUIStore';
 import { today, fmtD, taskTimeStr, getDeadlineClass, getDeadlineLabel } from '../lib/constants';
 import { getStatusMaps, getCompleteStatus, getStandUpStatus, getReviewStatus, getPassStatus } from '../utils/statusUtils';
 import { getNotesText } from '../utils/notesUtils';
+import { getTaskMilestoneLink } from '../utils/milestoneHelpers';
 import Avatar from '../components/Avatar';
 import TaskModal from '../components/TaskModal';
 import StatusPopup from '../components/StatusPopup';
@@ -470,7 +471,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
                             justifyContent:'center',flexShrink:0,padding:0,fontFamily:'inherit',marginLeft:'auto',opacity:limitReached?0.5:1}}>+</button>
                       </div>
                       <div className="msec-tasks">
-                        {moodTasks.map(t => <TCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} onOpenTask={onOpenTask} onStatus={onStatus} />)}
+                        {moodTasks.map(t => <TCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} milestones={S.milestones} onOpenTask={onOpenTask} onStatus={onStatus} />)}
                       </div>
                     </div>
                   );
@@ -483,7 +484,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
         {suTasks.length>0 && (
           <div className="msec su-sec">
             <div className="su-head">🗣 Stand Up <span style={{fontSize:9,background:'var(--warn)',color:'#fff',padding:'1px 5px',borderRadius:8,marginLeft:2}}>{suTasks.length}</span></div>
-            <div className="msec-tasks">{suTasks.map(t => <TCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} onOpenTask={onOpenTask} onStatus={onStatus} />)}</div>
+            <div className="msec-tasks">{suTasks.map(t => <TCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} milestones={S.milestones} onOpenTask={onOpenTask} onStatus={onStatus} />)}</div>
           </div>
         )}
 
@@ -543,9 +544,10 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
                     </div>
                   );
                 })}
-                {mt.length ? mt.map(t => <TCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} onOpenTask={onOpenTask} onStatus={onStatus} />)
+                {mt.length ? mt.map(t => <TCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} milestones={S.milestones} onOpenTask={onOpenTask} onStatus={onStatus} />)
                   : !moodMilestones.length ? <div style={{fontSize:10,color:'var(--t3)',padding:'5px 4px',fontStyle:'italic'}}>No active {mood.label}</div> : null}
               </div>
+
             </div>
           );
         })}
@@ -562,7 +564,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
 /* ── CIRCULAR SUBTASK PROGRESS ── */
 
 /* ── DESKTOP TASK CARD ── */
-const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStatuses, members, onOpenTask, onStatus }) {
+const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStatuses, members, milestones, onOpenTask, onStatus }) {
   const { STC, STB } = useMemo(() => getStatusMaps(taskStatuses), [taskStatuses]);
   const mood = useMemo(() => moods.find(m => m.id === task.mood), [moods, task.mood]);
   const isHero=task.mood==='hero', isTop=task.mood==='top', isImp=task.mood==='imp';
@@ -577,6 +579,7 @@ const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStat
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
   const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const msLink = useMemo(() => getTaskMilestoneLink(task.id, milestones), [task.id, milestones]);
 
   return (
     <div className={`tcard${extra}`} onClick={()=>onOpenTask(task)}>
@@ -591,6 +594,7 @@ const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStat
         </span>
         {timeStr && <span className="ttime">{timeStr}</span>}
       </div>
+      {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
       {task.tags?.length>0 && (
         <div style={{display:'flex',gap:3,flexWrap:'wrap',marginTop:3}}>
           {task.tags.map(tid => { const tg = tags.find(t=>t.id===tid); return tg ? <span key={tid} className="ttag-chip">{tg.label}</span> : null; })}
@@ -764,7 +768,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
                             justifyContent:'center',flexShrink:0,padding:0,fontFamily:'inherit',marginLeft:'auto',opacity:limitReached?0.5:1}}>+</button>
                       </div>
                       <div className="msec-tasks">
-                        {moodTasks.map(t => <MobileTaskCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} expanded={expandedCards[t.id]} onToggleExpand={onToggleExpand} onOpenTask={onOpenTask} onStatus={onStatus} />)}
+                        {moodTasks.map(t => <MobileTaskCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} milestones={S.milestones} expanded={expandedCards[t.id]} onToggleExpand={onToggleExpand} onOpenTask={onOpenTask} onStatus={onStatus} />)}
                       </div>
                     </div>
                   );
@@ -778,7 +782,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
       {suTasks.length>0 && (
         <div className="msec su-sec" style={{marginBottom:6}}>
           <div className="su-head" style={{padding:'4px 6px'}}>🗣 Stand Up <span style={{fontSize:9,background:'var(--warn)',color:'#fff',padding:'1px 6px',borderRadius:8,marginLeft:2}}>{suTasks.length}</span></div>
-          <div className="msec-tasks" style={{maxHeight:100,overflowY:'auto'}}>{suTasks.map(t => <MobileTaskCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} expanded={expandedCards[t.id]} onToggleExpand={onToggleExpand} onOpenTask={onOpenTask} onStatus={onStatus} />)}</div>
+          <div className="msec-tasks" style={{maxHeight:100,overflowY:'auto'}}>{suTasks.map(t => <MobileTaskCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} milestones={S.milestones} expanded={expandedCards[t.id]} onToggleExpand={onToggleExpand} onOpenTask={onOpenTask} onStatus={onStatus} />)}</div>
         </div>
       )}
 
@@ -838,7 +842,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
                   </div>
                 );
               })}
-              {mt.length ? mt.map(t => <MobileTaskCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} expanded={expandedCards[t.id]} onToggleExpand={onToggleExpand} onOpenTask={onOpenTask} onStatus={onStatus} />)
+              {mt.length ? mt.map(t => <MobileTaskCard key={t.id} task={t} member={member} moods={S.moods} clients={S.clients} tags={S.tags} taskStatuses={S.task_statuses} members={S.members} milestones={S.milestones} expanded={expandedCards[t.id]} onToggleExpand={onToggleExpand} onOpenTask={onOpenTask} onStatus={onStatus} />)
                 : !moodMilestones.length ? <div style={{fontSize:10,color:'var(--t3)',padding:'4px 4px',fontStyle:'italic'}}>No active {mood.label}</div> : null}
             </div>
           </div>
@@ -854,7 +858,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
 });
 
 /* ── MOBILE TASK CARD (simplified, expandable) ── */
-const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clients, tags, taskStatuses, members, expanded, onToggleExpand, onOpenTask, onStatus }) {
+const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clients, tags, taskStatuses, members, milestones, expanded, onToggleExpand, onOpenTask, onStatus }) {
   const { STC, STB } = useMemo(() => getStatusMaps(taskStatuses), [taskStatuses]);
   const mood = useMemo(() => moods.find(m => m.id === task.mood), [moods, task.mood]);
   const client = useMemo(() => clients.find(c => c.id === task.clientId), [clients, task.clientId]);
@@ -866,6 +870,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clien
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
   const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const msLink = useMemo(() => getTaskMilestoneLink(task.id, milestones), [task.id, milestones]);
 
   return (
     <div className="td-mob-card" onClick={() => onOpenTask(task)}>
@@ -880,6 +885,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clien
           {timeStr && <span className="ttime" style={{fontSize:10}}>{timeStr}</span>}
         </div>
       </div>
+      {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
       {task.tags?.length > 0 || task.assignedTo?.length > 1 ? (
         <button className="td-mob-card-expand" onClick={(e)=>{e.stopPropagation();onToggleExpand(task.id);}}>
           {expanded ? '▲' : '···'}
