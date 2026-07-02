@@ -32,7 +32,7 @@ function clearDraft() {
   try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
 }
 
-export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '', onSaveAsTemplate, readonlyAssignee = false }) {
+export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '', onSaveAsTemplate, readonlyAssignee = false, onOpenMilestone }) {
   const S = useStore(s => s.S);
   const session = useStore(s => s.session);
   const { STATS } = getStatusMaps(S.task_statuses);
@@ -53,6 +53,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const [assigned, setAssigned] = useState(initVal('assigned', task.assignedTo ? [...task.assignedTo] : []));
   const [clientId, setClientId] = useState(initVal('clientId', task.clientId || ''));
   const [date, setDate] = useState(initVal('date', task.date || today()));
+  const [postingDate, setPostingDate] = useState(initVal('postingDate', task.postingDate || ''));
   const [status, setStatus] = useState(initVal('status', task.status || getDefaultStatus(S.task_statuses)));
   const [estH, setEstH] = useState(initVal('estH', task.estH || ''));
   const [estM, setEstM] = useState(initVal('estM', task.estM || ''));
@@ -73,6 +74,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const [linkMsId, setLinkMsId] = useState('');
   const [linkSsId, setLinkSsId] = useState('');
   const [showMsPicker, setShowMsPicker] = useState(false);
+  const [msSearch, setMsSearch] = useState('');
   const taskIdRef = useRef(task.id || null);
   const [saveStatus, setSaveStatus] = useState(task.id ? 'idle' : 'idle');
   const debounceRef = useRef(null);
@@ -88,7 +90,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   if (task.id && lastSnapshot.current === '') {
     lastSnapshot.current = JSON.stringify([
       name.trim(), mood, [...assigned].sort(),
-      clientId || '', date || '', status, String(estH), String(estM),
+      clientId || '', date || '', postingDate || '', status, String(estH), String(estM),
       notes, [...tags].sort(),
       subtasks.map(x => x.text + String(x.done)).sort().join('|'),
       links.map(x => x.url).sort().join('|'),
@@ -124,6 +126,20 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     return null;
   }, [task.id, S.milestones]);
 
+  const filteredMilestones = useMemo(() => {
+    if (!msSearch.trim()) return S.milestones.filter(m => !m.deleted);
+    const q = msSearch.toLowerCase().trim();
+    return S.milestones.filter(m => {
+      if (m.deleted) return false;
+      if (m.title.toLowerCase().includes(q)) return true;
+      const clientName = m.clientId ? (sel.gc(S, m.clientId)?.name || '').toLowerCase() : '';
+      if (clientName.includes(q)) return true;
+      const assigneeNames = (m.assignedTo || []).map(id => (sel.gm(S, id)?.name || '').toLowerCase());
+      if (assigneeNames.some(n => n.includes(q))) return true;
+      return false;
+    });
+  }, [msSearch, S.milestones, S]);
+
   useEffect(() => { taskNameRef.current?.focus(); }, []);
 
   useEffect(() => {
@@ -132,7 +148,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
   // Keep a ref with the latest field values (no stale closures in debounce callbacks)
   useEffect(() => {
-    fieldsRef.current = { name, mood, assigned: [...assigned], clientId, date, status, estH, estM, notes, tags: [...tags], subtasks: subtasks.map(s => ({...s})), links: links.map(l => ({...l})) };
+    fieldsRef.current = { name, mood, assigned: [...assigned], clientId, date, postingDate, status, estH, estM, notes, tags: [...tags], subtasks: subtasks.map(s => ({...s})), links: links.map(l => ({...l})) };
   });
 
   const doSave = useCallback(() => {
@@ -143,7 +159,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
       const snapshot = JSON.stringify([
         f.name.trim(), f.mood, [...f.assigned].sort(),
-        f.clientId || '', f.date || '', f.status, String(f.estH), String(f.estM),
+        f.clientId || '', f.date || '', f.postingDate || '', f.status, String(f.estH), String(f.estM),
         f.notes, [...f.tags].sort(),
         f.subtasks.map(x => x.text + String(x.done)).sort().join('|'),
         f.links.map(x => x.url).sort().join('|'),
@@ -155,7 +171,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
       const payload = {
         ...(currentId ? { id: currentId } : {}),
         name: f.name.trim(), clientId: f.clientId || null, date: f.date || today(),
-        mood: f.mood, status: f.status, assignedTo: [...f.assigned], tags: [...f.tags],
+        postingDate: f.postingDate || null, mood: f.mood, status: f.status, assignedTo: [...f.assigned], tags: [...f.tags],
         estH: parseInt(f.estH) || 0, estM: parseInt(f.estM) || 0, notes: f.notes,
         subtasks: f.subtasks.map(s => ({ ...s })),
         links: f.links.map(l => ({ ...l })),
@@ -275,7 +291,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
       return;
     }
     scheduleSave();
-  }, [name, mood, assigned, clientId, date, status, estH, estM, notes, tags, subtasks, links, scheduleSave, flushSave]);
+  }, [name, mood, assigned, clientId, date, postingDate, status, estH, estM, notes, tags, subtasks, links, scheduleSave, flushSave]);
 
   function timeAgo(ts) {
     const diff = Date.now() - ts;
@@ -325,11 +341,11 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   useEffect(() => {
     saveDraft({
       _taskId: draftId,
-      name, mood, assigned, clientId, date, status,
+      name, mood, assigned, clientId, date, postingDate, status,
       estH, estM, notes, tags, subtasks, links,
       newTag, newSubtask, newLinkLabel, newLinkUrl, tDetailTab,
     });
-  }, [name, mood, assigned, clientId, date, status, estH, estM, notes, tags, subtasks, links, newTag, newSubtask, newLinkLabel, newLinkUrl, tDetailTab, draftId]);
+  }, [name, mood, assigned, clientId, date, postingDate, status, estH, estM, notes, tags, subtasks, links, newTag, newSubtask, newLinkLabel, newLinkUrl, tDetailTab, draftId]);
 
   const toggle = (arr, set, id) =>
     set(arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
@@ -612,6 +628,19 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
             <button className="btn btn-sm" onClick={addTagInline}>+ Tag</button>
           </div>
 
+          <label className="fl">Posting date</label>
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:6,flexWrap:'wrap'}}>
+            <input type="date" value={postingDate} onChange={e=>setPostingDate(e.target.value)} style={{width:150}} />
+            <button className="btn btn-xs" onClick={()=>setPostingDate(today())}>Today</button>
+            <button className="btn btn-xs" onClick={()=>{
+              const d = new Date((postingDate||today()) + 'T12:00:00');
+              d.setDate(d.getDate() + 1);
+              setPostingDate(d.toISOString().slice(0, 10));
+            }}>Tomorrow</button>
+            <button className="btn btn-xs" onClick={()=>setPostingDate('')}>Clear</button>
+          </div>
+          <div style={{fontSize:10,color:'var(--t3)',marginTop:4}}>Used in SM Calendar posting view</div>
+
           {/* ── Subtasks, Links & Activity tabs ── */}
           <div className="tdetail-tabs">
             <div className={`tdetail-tab${tDetailTab==='sub'?' active':''}`} onClick={()=>setTDetailTab('sub')}>
@@ -728,18 +757,41 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
               ) : showMsPicker ? (
                 <div>
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-                    <span style={{fontSize:12,fontWeight:600,color:'var(--t2)'}}>{linkedMilestone ? 'Change milestone' : 'Link to milestone'}</span>
+                    <span style={{fontSize:12,fontWeight:600,color:'var(--t2)'}}>{linkMsId ? 'Select substep' : 'Link to milestone'}</span>
                     <button className="btn btn-xs" onClick={handleCancelPicker} style={{marginLeft:'auto'}}>Cancel</button>
                   </div>
-                  <label className="fl" style={{marginTop:0}}>Select milestone</label>
-                  <select value={linkMsId} onChange={e=>{setLinkMsId(e.target.value);setLinkSsId('')}} style={{width:'100%',marginBottom:8}}>
-                    <option value="">— Choose —</option>
-                    {S.milestones.filter(m => !m.deleted).map(m => (
-                      <option key={m.id} value={m.id}>{m.title}</option>
-                    ))}
-                  </select>
-                  {linkMsId && (
+                  {!linkMsId ? (
+                    <div className="search-wrap">
+                      <div className="search-bar">
+                        <i style={{fontSize:12,color:'var(--t3)'}}>🔍</i>
+                        <input type="text" placeholder="Search milestones..." value={msSearch}
+                          onChange={e => setMsSearch(e.target.value)} autoFocus />
+                      </div>
+                      <div className="search-results">
+                        {filteredMilestones.map(m => {
+                          const client = m.clientId ? sel.gc(S, m.clientId) : null;
+                          const assignees = (m.assignedTo || []).map(id => sel.gm(S, id)).filter(Boolean);
+                          const total = (m.substeps||[]).length;
+                          const done = (m.substeps||[]).filter(s => s.done).length;
+                          return (
+                            <div key={m.id} className="search-item" onClick={() => { setLinkMsId(m.id); setLinkSsId(''); setMsSearch(''); }}>
+                              <div className="search-item-name">{m.title}</div>
+                              <div className="search-item-meta">
+                                {assignees.length > 0 && <span>{assignees.map(a => a.name).join(', ')}</span>}
+                                {client && <span className="search-item-client">{client.name}</span>}
+                                <span className="search-item-progress">{done}/{total} done</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {filteredMilestones.length === 0 && (
+                          <div style={{padding:'20px',textAlign:'center',color:'var(--t3)',fontSize:12}}>No milestones match your search.</div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
                     <>
+                      <button className="btn btn-xs" onClick={() => { setLinkMsId(''); setLinkSsId(''); }} style={{marginBottom:8}}>← Back</button>
                       <label className="fl" style={{marginTop:0}}>Select substep</label>
                       <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:8}}>
                         {(S.milestones.find(m => m.id === linkMsId)?.substeps||[]).map(ss => (
@@ -749,40 +801,40 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                           </label>
                         ))}
                       </div>
+                      <button className="btn btn-sm" disabled={!linkSsId} onClick={handleLinkTask}>Link Task</button>
                     </>
                   )}
-                  <button className="btn btn-sm" disabled={!linkSsId} onClick={handleLinkTask}>Link Task</button>
                 </div>
               ) : linkedMilestone ? (
-                <div className="ms-linked-card">
-                  <div className="ms-linked-header">
-                    <div className="ms-linked-icon">◆</div>
-                    <span className="ms-linked-name">{linkedMilestone.milestone.title}</span>
+                <div className="ms-card">
+                  <div className="ms-card-row">
+                    <div className="ms-card-icon-sq"><i>◆</i></div>
+                    <span className="ms-card-tag">◆ MILESTONE</span>
+                    <span className="ms-card-title">{linkedMilestone.milestone.title}</span>
                   </div>
-                  <div className="ms-linked-body">
-                    <div className="ms-sub-row">
-                      <div className="ms-sub-icon">⊞</div>
-                      <div>
-                        <p className="ms-sub-label">Substep</p>
-                        <p className="ms-sub-name">{linkedMilestone.substep.title}</p>
-                      </div>
-                    </div>
-                    <div className="ms-link-actions">
-                      <button className="ms-link-btn" onClick={handleOpenPicker}>
-                        ↔ Change milestone
+                  <div className="ms-card-divider" />
+                  <div className="ms-card-row">
+                    <div className="ms-card-icon-sq ms-card-icon-grey"><i>⊞</i></div>
+                    <span className="ms-card-sub-label">SUBSTEP</span>
+                    <span className="ms-card-sub-name">{linkedMilestone.substep.title}</span>
+                  </div>
+                  <div className="ms-card-actions">
+                    {onOpenMilestone && (
+                      <button className="ms-card-btn" onClick={() => onOpenMilestone(linkedMilestone.milestone)}>
+                        <i>✎</i> Edit milestone
                       </button>
-                      <button className="ms-link-btn unlink" onClick={handleUnlinkTask}>
-                        ⊘ Unlink
-                      </button>
-                    </div>
+                    )}
+                    <button className="ms-card-btn ms-card-btn-unlink" onClick={handleUnlinkTask}>
+                      <i>⊘</i> Unlink
+                    </button>
                   </div>
                 </div>
               ) : (
                 <div className="ms-empty">
-                  <div style={{fontSize:28,color:'var(--t3)',lineHeight:1}}>◆</div>
+                  <div style={{fontSize:28,color:'var(--t3)',lineHeight:1}}><i>◆</i></div>
                   <p>This task is not linked to any milestone yet.</p>
                   <button className="ms-empty-btn" onClick={handleOpenPicker}>
-                    + Link to a milestone
+                    <i>+</i> Link to a milestone
                   </button>
                 </div>
               )}

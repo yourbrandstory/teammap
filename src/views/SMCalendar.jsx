@@ -43,6 +43,7 @@ export default function SMCalendar() {
   const [clientFilter, setClientFilter] = useState('');
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [view, setView] = useState('execution');
 
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth();
@@ -97,7 +98,29 @@ export default function SMCalendar() {
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [S.clients, socialCatId]);
 
-  const todayTasks = useMemo(() => tasksByDate[todayDate] || [], [tasksByDate]);
+  const tasksByPostingDate = useMemo(() => {
+    const map = {};
+    filteredTasks.forEach(t => {
+      if (t.postingDate) {
+        if (!map[t.postingDate]) map[t.postingDate] = [];
+        map[t.postingDate].push(t);
+      }
+    });
+    const moodOrder = S.moods.map(m => m.id);
+    for (const date in map) {
+      map[date].sort((a, b) => {
+        const ai = moodOrder.indexOf(a.mood);
+        const bi = moodOrder.indexOf(b.mood);
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
+    }
+    return map;
+  }, [filteredTasks, S.moods]);
+
+  const todayTasks = useMemo(() => {
+    const map = view === 'execution' ? tasksByDate : tasksByPostingDate;
+    return map[todayDate] || [];
+  }, [tasksByDate, tasksByPostingDate, view]);
 
   const openTask = useCallback((t) => setModal(t), []);
   const closeModal = useCallback(() => setModal(null), []);
@@ -113,6 +136,15 @@ export default function SMCalendar() {
   const toggleMember = useCallback((id) => {
     setMemberFilter(prev => prev === id ? '' : id);
   }, []);
+
+  const postingMonthEmpty = useMemo(() => {
+    if (view !== 'posting') return false;
+    return !smTasks.some(t => {
+      if (!t.postingDate) return false;
+      const d = new Date(t.postingDate + 'T12:00:00');
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+  }, [view, smTasks, year, month]);
 
   const moodPastel = useCallback((moodId) => {
     if (!moodId) return null;
@@ -204,6 +236,10 @@ export default function SMCalendar() {
               <button className="smc-soft-btn" onClick={nextMonth}>›</button>
             </div>
             <button className="smc-soft-btn smc-today-btn" onClick={goToday}>Today</button>
+            <div className="smc-view-toggle">
+              <span className={`smc-view-btn${view === 'execution' ? ' active' : ''}`} onClick={() => setView('execution')}>📅 Execution</span>
+              <span className={`smc-view-btn${view === 'posting' ? ' active' : ''}`} onClick={() => setView('posting')}>📌 Posting</span>
+            </div>
             <div className="smc-mh-chips">
               <button className={`smc-flt${!memberFilter ? ' smc-flt-on' : ''}`} onClick={() => setMemberFilter('')}>All members</button>
               {S.members.map(m => (
@@ -223,12 +259,17 @@ export default function SMCalendar() {
             ))}
           </div>
 
+          {postingMonthEmpty && (
+            <div className="smc-posting-empty">No posting dates set yet. Add a posting date to tasks tagged with SM Calendar.</div>
+          )}
+
           {/* Grid */}
           <div className="smc-grid">
             {days.map((d, i) => {
               const ds = dateStr(year, month, d.day);
               const isT = ds === todayDate;
-              const tasks = tasksByDate[ds] || [];
+              const dayMap = view === 'execution' ? tasksByDate : tasksByPostingDate;
+              const tasks = dayMap[ds] || [];
 
               return (
                 <div
@@ -268,6 +309,7 @@ export default function SMCalendar() {
                                     {client && <span className="client-text" style={{ color: client.color || 'var(--t2)' }}>{client.name}</span>}
                                   </div>
                                 )}
+                                {view === 'posting' && <span className="posting-badge">📌 Posting</span>}
                                 {hasIcons && (
                                   <div className="task-icons">
                                     {hasSubtasks && (
@@ -306,7 +348,7 @@ export default function SMCalendar() {
         {/* ── RIGHT PANEL: Today's tasks ── */}
         <div className={`smc-right${rightOpen ? '' : ' smc-collapsed'}`}>
           <div className="smc-card">
-            <div className="smc-side-label">Today · {TODAY.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+            <div className="smc-side-label">{view === 'execution' ? 'Today' : 'Posting Today'} · {TODAY.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
             {todayTasks.length === 0 && (
               <div className="smc-side-empty">No tasks today</div>
             )}

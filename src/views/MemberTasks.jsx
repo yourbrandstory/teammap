@@ -24,6 +24,10 @@ export default function MemberTasks() {
   const [modal, setModal] = useState(null);
   const [msModal, setMsModal] = useState(null);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+  const handleOpenMilestoneFromTask = useCallback((ms) => {
+    closeModal();
+    setTimeout(() => setMsModal(ms), 100);
+  }, [closeModal]);
   const [viewMode, setViewMode] = useState('myTasks');
 
   const openTask = useCallback((t) => setModal(t), []);
@@ -165,7 +169,7 @@ export default function MemberTasks() {
         />
       )}
 
-      {modal && <TaskModal task={modal} onClose={closeModal} onSaveAsTemplate={(d) => { useUIStore.getState().triggerSaveAsTemplate(d); }} />}
+      {modal && <TaskModal task={modal} onClose={closeModal} onSaveAsTemplate={(d) => { useUIStore.getState().triggerSaveAsTemplate(d); }} onOpenMilestone={handleOpenMilestoneFromTask} />}
       {msModal && <MilestoneModal milestone={msModal} onClose={() => setMsModal(null)} onOpenTask={openTask} onCreateTaskForSubstep={undefined} />}
     </div>
   );
@@ -526,7 +530,7 @@ function TaskCard({ task, S, STC, STB, onClick }) {
           </span>
         )}
         <span style={{ color: 'var(--t3)' }}>{task.date}</span>
-        {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
+        {msLink && <div className="task-ms-badge"><i>◆</i> <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
         {sender && (
           <span style={{ color: 'var(--t3)', fontWeight: 500 }}>
             from {sender.name}
@@ -582,7 +586,7 @@ const MTaskCard = ({ task, S, onOpenTask, onStatus, onHide }) => {
             title="Hide">✕</button>
         )}
       </div>
-      {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
+      {msLink && <div className="task-ms-badge"><i>◆</i> <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
       {task.tags?.length > 0 && (
         <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 3 }}>
           {task.tags.map(tid => { const tg = sel.gtag(S, tid); return tg ? <span key={tid} className="ttag-chip">{tg.label}</span> : null; })}

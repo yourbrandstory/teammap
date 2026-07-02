@@ -81,6 +81,10 @@ export default function TaskDashboard() {
   const openStatus = useCallback((s) => setStPop(s), []);
   const closeModal = useCallback(() => setModal(null), []);
   const closeStatus = useCallback(() => setStPop(null), []);
+  const handleOpenMilestoneFromTask = useCallback((ms) => {
+    closeModal();
+    setTimeout(() => openMs(ms), 100);
+  }, [closeModal, openMs]);
   const linkAfterCreateRef = useRef(null);
 
   const handleCreateTaskForSubstep = useCallback((ssId, taskData, linkCallback) => {
@@ -315,7 +319,7 @@ export default function TaskDashboard() {
 
       {stPop && <StatusPopup taskId={stPop.taskId} anchorRect={stPop.rect} onClose={closeStatus} />}
       {msModal && <MilestoneModal milestone={msModal.id ? msModal : null} onClose={closeMs} onOpenTask={openTask} onCreateTaskForSubstep={handleCreateTaskForSubstep} />}
-      {modal && <TaskModal task={modal} onClose={closeModal} onSave={handleTaskSave} onSaveAsTemplate={(d) => { useUIStore.getState().triggerSaveAsTemplate(d); }} />}
+      {modal && <TaskModal task={modal} onClose={closeModal} onSave={handleTaskSave} onSaveAsTemplate={(d) => { useUIStore.getState().triggerSaveAsTemplate(d); }} onOpenMilestone={handleOpenMilestoneFromTask} />}
     </div>
   );
 }
@@ -594,7 +598,7 @@ const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStat
         </span>
         {timeStr && <span className="ttime">{timeStr}</span>}
       </div>
-      {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
+      {msLink && <div className="task-ms-badge"><i>◆</i> <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
       {task.tags?.length>0 && (
         <div style={{display:'flex',gap:3,flexWrap:'wrap',marginTop:3}}>
           {task.tags.map(tid => { const tg = tags.find(t=>t.id===tid); return tg ? <span key={tid} className="ttag-chip">{tg.label}</span> : null; })}
@@ -885,7 +889,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clien
           {timeStr && <span className="ttime" style={{fontSize:10}}>{timeStr}</span>}
         </div>
       </div>
-      {msLink && <div className="task-ms-badge">◆ <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
+      {msLink && <div className="task-ms-badge"><i>◆</i> <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
       {task.tags?.length > 0 || task.assignedTo?.length > 1 ? (
         <button className="td-mob-card-expand" onClick={(e)=>{e.stopPropagation();onToggleExpand(task.id);}}>
           {expanded ? '▲' : '···'}
