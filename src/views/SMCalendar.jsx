@@ -28,6 +28,12 @@ function dateStr(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+function fmtDate(ds) {
+  if (!ds) return '';
+  const d = new Date(ds + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 function memberColor(member) {
   const pastels = ['#E6F1FB','#EAF3DE','#FAEEDA','#FBEAF0','#E1F5EE','#EEEDFE','#FAECE7','#F1EFE8'];
   const idx = member.id ? member.id.charCodeAt(0) % pastels.length : 0;
@@ -309,6 +315,7 @@ export default function SMCalendar() {
                                     {client && <span className="client-text" style={{ color: client.color || 'var(--t2)' }}>{client.name}</span>}
                                   </div>
                                 )}
+                                {t.postingDate && <span className="pd-capsule" title={t.postingDate}>📅 {fmtDate(t.postingDate)}</span>}
                                 {view === 'posting' && <span className="posting-badge">📌 Posting</span>}
                                 {hasIcons && (
                                   <div className="task-icons">
@@ -374,6 +381,7 @@ export default function SMCalendar() {
                   </div>
                   <div className="smc-today-name">{t.name}</div>
                   <div className="smc-today-meta">
+                    {t.postingDate && <span className="pd-capsule" title={t.postingDate}>📅 {fmtDate(t.postingDate)}</span>}
                     {client && (
                       <span className="smc-today-tag" style={{ background: (client.color || '#eceae5') + '33', color: client.color || 'var(--t2)' }}>
                         {client.name}

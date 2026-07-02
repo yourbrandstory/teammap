@@ -63,6 +63,7 @@ create index if not exists tasks_deleted_idx on tasks(deleted);
 
 -- add subtasks/links columns if upgrading from a schema that lacks them
 alter table tasks add column if not exists subtasks jsonb default '[]'::jsonb;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS posting_date TEXT DEFAULT NULL;
 alter table tasks add column if not exists links jsonb default '[]'::jsonb;
 
 create table if not exists milestones (
