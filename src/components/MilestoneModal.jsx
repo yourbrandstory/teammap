@@ -1,4 +1,7 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, memo } from 'react';
+import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useStore, sel } from '../store/useStore';
 import { today, uid, getDeadlineClass, getDeadlineLabel } from '../lib/constants';
 
@@ -60,6 +63,41 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
   const hasEverHadRequiredFields = useRef(false);
   const saveStatusTimer = useRef(null);
   const saveQueue = useRef(Promise.resolve());
+
+  const ssSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 5 } }),
+  );
+  const taskSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
+
+  const handleSSDragEnd = useCallback((event) => {
+    const { active, over } = event;
+    if (!active || !over || active.id === over.id) return;
+    setM(prev => {
+      const oldIdx = prev.substeps.findIndex(s => s.id === active.id);
+      const newIdx = prev.substeps.findIndex(s => s.id === over.id);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      return { ...prev, substeps: arrayMove(prev.substeps, oldIdx, newIdx) };
+    });
+  }, []);
+
+  const handleTaskDragEnd = useCallback((ssId, event) => {
+    const { active, over } = event;
+    if (!active || !over || active.id === over.id) return;
+    setM(prev => ({
+      ...prev,
+      substeps: prev.substeps.map(s => {
+        if (s.id !== ssId) return s;
+        const oldIdx = s.linkedTasks.findIndex(lt => lt.taskId === active.id);
+        const newIdx = s.linkedTasks.findIndex(lt => lt.taskId === over.id);
+        if (oldIdx === -1 || newIdx === -1) return s;
+        return { ...s, linkedTasks: arrayMove(s.linkedTasks, oldIdx, newIdx) };
+      })
+    }));
+  }, []);
 
   // Initialize snapshot on first render to prevent auto-save on mount for existing milestones
   if (milestone?.id && lastSnapshot.current === '') {
@@ -456,72 +494,31 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
               </div>
             )}
 
-            <div style={{display:'flex',flexDirection:'column',gap:4}}>
-              {m.substeps.map(ss => {
-                return (
-                  <div key={ss.id} className="ms-ss-card">
-                    <div className="ms-ss-card-head" onClick={()=>setExpandedSS(prev=>({...prev,[ss.id]:!prev[ss.id]}))}>
-                      <div className={`ms-ss-chk${ss.done?' checked':''}`} onClick={e=>{e.stopPropagation();toggleSubstep(ss.id);}}>
-                        {ss.done ? '✓' : ''}
-                      </div>
-                      <span className={`ms-ss-title${ss.done?' done':''}`}>{ss.title || 'Untitled'}</span>
-                      {ss.linkedTasks?.length > 0 && <span className="ms-ss-linked">🔗 {ss.linkedTasks.length} task{ss.linkedTasks.length > 1 ? 's' : ''}</span>}
-                      <span className="ms-ss-expand">{expandedSS[ss.id] ? '▲' : '▼'}</span>
-                    </div>
-                    {expandedSS[ss.id] && (
-                      <div className="ms-ss-card-body">
-                        <input type="text" placeholder="Substep title" value={ss.title} onChange={e=>updateSubstepTitle(ss.id,e.target.value)} />
-
-                        <div className="ms-ss-link-section">
-                          <label className="ms-ss-link-label">LINKED TASKS</label>
-
-                          {(ss.linkedTasks||[]).length > 0 && (
-                            <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                              {(ss.linkedTasks||[]).map(ltObj => {
-                                const lt = S.tasks.find(t => t.id === ltObj.taskId);
-                                const tm = lt ? sel.gmood(S, lt.mood) : null;
-                                const tc = lt ? sel.gc(S, lt.clientId) : null;
-                                return lt ? (
-                                  <div key={ltObj.taskId} className="linked-task-card" style={{
-                                    borderLeft:`3px solid ${tm?.color||'var(--accent)'}`,
-                                  }}>
-                                    <div className="linked-task-top">
-                                      <span className="linked-task-mood">{tm?.icon||''}</span>
-                                      <span className="linked-task-name">{lt.name}</span>
-                                      <button className="icon-btn edit" title="Open task" onClick={()=>handleOpenTask(lt.id)}>✎</button>
-                                    </div>
-                                    <div className="linked-task-meta">
-                                      {tc && <span className="linked-task-client" style={{background:(tc.color||'var(--s2)')+'22',color:tc.color||'var(--t2)'}}>{tc.name}</span>}
-                                      {tm && <span className="linked-task-mood-tag" style={{background:tm.bg,color:tm.color}}>{tm.icon} {tm.label}</span>}
-                                      <span className="linked-task-status">{lt.status}</span>
-                                      <span className="linked-task-date">{lt.date||''}</span>
-                                    </div>
-                                    <label className="show-dash-toggle">
-                                      <input type="checkbox" checked={ltObj.showOnDashboard}
-                                        onChange={() => toggleTaskDashVisibility(ss.id, ltObj.taskId)} />
-                                      Show on Task Dashboard
-                                    </label>
-                                  </div>
-                                ) : (
-                                  <span key={ltObj.taskId} style={{color:'var(--warn)',fontSize:12}}>Task not found (id: {ltObj.taskId})</span>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          <div className="ms-ss-link-btns">
-                            <button onClick={()=>{setTaskSearch(ss.id);setSearchQ('');}}>🔍 Link existing task</button>
-                            <button onClick={()=>handleCreateAndLink(ss.id)}>+ Create new task</button>
-                          </div>
-                        </div>
-
-                        <button className="ms-ss-remove" onClick={()=>removeSubstep(ss.id)}>🗑 Remove substep</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <DndContext sensors={ssSensors} collisionDetection={closestCenter} onDragEnd={handleSSDragEnd}>
+              <SortableContext items={m.substeps.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                  {m.substeps.map(ss => (
+                    <SortableSubstep
+                      key={ss.id}
+                      ss={ss}
+                      expanded={!!expandedSS[ss.id]}
+                      S={S}
+                      taskSensors={taskSensors}
+                      onToggleExpand={() => setExpandedSS(prev => ({ ...prev, [ss.id]: !prev[ss.id] }))}
+                      onToggleDone={() => toggleSubstep(ss.id)}
+                      onUpdateTitle={(e) => updateSubstepTitle(ss.id, e.target.value)}
+                      onRemove={() => removeSubstep(ss.id)}
+                      onTaskDragEnd={handleTaskDragEnd}
+                      onLinkTask={() => { setTaskSearch(ss.id); setSearchQ(''); }}
+                      onCreateTask={() => handleCreateAndLink(ss.id)}
+                      onOpenTask={handleOpenTask}
+                      onDeleteTask={(ltObj) => handleDeleteTask(ss.id, ltObj)}
+                      onToggleDashVis={(taskId) => toggleTaskDashVisibility(ss.id, taskId)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
 
             {subTotal === 0 && (
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px',gap:16}}>
@@ -630,6 +627,117 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     </div>
   );
 }
+
+function SortableSubstep({ ss, expanded, S, taskSensors, onToggleExpand, onToggleDone, onUpdateTitle, onRemove, onTaskDragEnd, onLinkTask, onCreateTask, onOpenTask, onDeleteTask, onToggleDashVis }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ss.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    ...(isDragging ? { boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } : {}),
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`ms-ss-card${isDragging ? ' dragging' : ''}`}>
+      <div className="ms-ss-card-head" onClick={onToggleExpand}>
+        <span className="ms-ss-drag-handle" {...attributes} {...listeners} onClick={e => e.stopPropagation()}>
+          ⠿
+        </span>
+        <div className={`ms-ss-chk${ss.done?' checked':''}`} onClick={e=>{e.stopPropagation();onToggleDone();}}>
+          {ss.done ? '✓' : ''}
+        </div>
+        <span className={`ms-ss-title${ss.done?' done':''}`}>{ss.title || 'Untitled'}</span>
+        {ss.linkedTasks?.length > 0 && <span className="ms-ss-linked">🔗 {ss.linkedTasks.length} task{ss.linkedTasks.length > 1 ? 's' : ''}</span>}
+        <span className="ms-ss-expand">{expanded ? '▲' : '▼'}</span>
+      </div>
+      <div className={`ms-ss-card-body${expanded ? ' expanded' : ''}`}>
+        <div className="ms-ss-card-body-inner">
+          {expanded && (
+            <>
+              <input type="text" placeholder="Substep title" value={ss.title} onChange={onUpdateTitle} />
+
+              <div className="ms-ss-link-section">
+                <label className="ms-ss-link-label">LINKED TASKS</label>
+
+                {(ss.linkedTasks||[]).length > 0 && (
+                  <DndContext sensors={taskSensors} collisionDetection={closestCenter} onDragEnd={(e) => onTaskDragEnd(ss.id, e)}>
+                    <SortableContext items={(ss.linkedTasks||[]).map(lt => lt.taskId)} strategy={verticalListSortingStrategy}>
+                      <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                        {(ss.linkedTasks||[]).map(ltObj => {
+                          const lt = S.tasks.find(t => t.id === ltObj.taskId);
+                          const tm = lt ? sel.gmood(S, lt.mood) : null;
+                          const tc = lt ? sel.gc(S, lt.clientId) : null;
+                          return lt ? (
+                            <SortableLinkedTask
+                              key={ltObj.taskId}
+                              ltObj={ltObj}
+                              lt={lt}
+                              tm={tm}
+                              tc={tc}
+                              ssId={ss.id}
+                              onOpen={onOpenTask}
+                              onDelete={onDeleteTask}
+                              onToggleDashVis={onToggleDashVis}
+                            />
+                          ) : (
+                            <span key={ltObj.taskId} style={{color:'var(--warn)',fontSize:12}}>Task not found (id: {ltObj.taskId})</span>
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+
+                <div className="ms-ss-link-btns">
+                  <button onClick={onLinkTask}>🔍 Link existing task</button>
+                  <button onClick={onCreateTask}>+ Create new task</button>
+                </div>
+              </div>
+
+              <button className="ms-ss-remove" onClick={onRemove}>🗑 Remove substep</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SortableLinkedTask = memo(function SortableLinkedTask({ ltObj, lt, tm, tc, ssId, onOpen, onDelete, onToggleDashVis }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ltObj.taskId });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    ...(isDragging ? { boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } : {}),
+  };
+
+  const mergedStyle = { ...style, borderLeft: `3px solid ${tm?.color||'var(--accent)'}` };
+
+  return (
+    <div ref={setNodeRef} style={mergedStyle} className={`linked-task-card${isDragging ? ' dragging' : ''}`}>
+      <div className="linked-task-top">
+        <span className="linked-task-drag-handle" {...attributes} {...listeners} onClick={e => e.stopPropagation()}>
+          ⠿
+        </span>
+        <span className="linked-task-mood">{tm?.icon||''}</span>
+        <span className="linked-task-name">{lt.name}</span>
+        <button className="icon-btn edit" title="Open task" onClick={()=>onOpen(lt.id)}>✎</button>
+      </div>
+      <div className="linked-task-meta">
+        {tc && <span className="linked-task-client" style={{background:(tc.color||'var(--s2)')+'22',color:tc.color||'var(--t2)'}}>{tc.name}</span>}
+        {tm && <span className="linked-task-mood-tag" style={{background:tm.bg,color:tm.color}}>{tm.icon} {tm.label}</span>}
+        <span className="linked-task-status">{lt.status}</span>
+        <span className="linked-task-date">{lt.date||''}</span>
+      </div>
+      <label className="show-dash-toggle">
+        <input type="checkbox" checked={ltObj.showOnDashboard}
+          onChange={() => onToggleDashVis(ltObj.taskId)} />
+        Show on Task Dashboard
+      </label>
+    </div>
+  );
+});
 
 function fmtDT(ts) {
   if (!ts) return '';
