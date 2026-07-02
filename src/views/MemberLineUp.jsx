@@ -5,9 +5,12 @@ import { today } from '../lib/constants';
 import { dayProgress } from '../utils/lineUpHelpers';
 import { getCompleteStatus, getReviewStatus, canDeleteTask } from '../utils/statusUtils';
 import { canCreateTask, getDailyActiveCount, getDailyLimit } from '../utils/taskLimits';
+import { getMilestonesForMemberToday } from '../utils/milestoneHelpers';
 import LineUpHeader from '../components/lineup/LineUpHeader';
 import LineUpCard from '../components/lineup/LineUpCard';
 import HiddenTasksPanel from '../components/HiddenTasksPanel';
+import MilestoneDashCard from '../components/MilestoneDashCard';
+import MilestoneModal from '../components/MilestoneModal';
 import TaskModal from '../components/TaskModal';
 
 export default function MemberLineUp() {
@@ -24,6 +27,7 @@ export default function MemberLineUp() {
   const [panelWidth, setPanelWidth] = useState(uiViewState.panelWidth || 380);
   const [mobileHiddenOpen, setMobileHiddenOpen] = useState(false);
   const [taskModal, setTaskModal] = useState(null);
+  const [msModal, setMsModal] = useState(null);
   const [viewMode, setViewMode] = useState(() => {
     try {
       const v = localStorage.getItem('lineupViewMode');
@@ -90,6 +94,30 @@ export default function MemberLineUp() {
     }
     return tasks;
   }, [myTasksOnDate, completeStatus, filters, S.task_statuses, sortMode, S.clients, S.moods]);
+
+  const memberMilestones = useMemo(() => {
+    if (!memberId) return [];
+    return getMilestonesForMemberToday(S.milestones, memberId, date);
+  }, [S.milestones, memberId, date]);
+
+  const combinedItems = useMemo(() => {
+    const moodOrder = S.moods.map(m => m.id);
+    const getMoodIndex = (moodId) => {
+      const i = moodOrder.indexOf(moodId);
+      return i === -1 ? 99 : i;
+    };
+    const items = [
+      ...activeTasks.map(t => ({ type: 'task', data: t, moodIndex: getMoodIndex(t.mood) })),
+      ...memberMilestones.map(ms => ({ type: 'milestone', data: ms, moodIndex: getMoodIndex(ms.mood), isMilestone: true })),
+    ];
+    items.sort((a, b) => {
+      if (a.moodIndex !== b.moodIndex) return a.moodIndex - b.moodIndex;
+      if (a.isMilestone && !b.isMilestone) return -1;
+      if (!a.isMilestone && b.isMilestone) return 1;
+      return 0;
+    });
+    return items;
+  }, [activeTasks, memberMilestones, S.moods]);
 
   const prog = useMemo(() => dayProgress(myTasksOnDate, S.task_statuses), [myTasksOnDate, S.task_statuses]);
 
@@ -178,24 +206,36 @@ export default function MemberLineUp() {
 
       <div className="lu-body">
         <div className="lu-main">
-          {!activeTasks.length ? (
+          {!combinedItems.length ? (
             <div className="lu-empty-state">
               <div className="lu-empty-icon">&#128203;</div>
               <p className="lu-empty-text">No tasks for this date</p>
             </div>
           ) : (
-            activeTasks.map(task => (
-              <LineUpCard
-                key={task.id}
-                task={task}
-                S={S}
-                onOpen={setTaskModal}
-                onStatusChange={setStatus}
-                onHide={hideTask}
-                onDelete={canDeleteTask(session, task) ? handleDelete : undefined}
-                compact={viewMode === 'compact'}
-              />
-            ))
+            combinedItems.map(item => {
+              if (item.type === 'milestone') {
+                return (
+                  <MilestoneDashCard
+                    key={item.data.id}
+                    milestone={item.data}
+                    S={S}
+                    onClick={() => setMsModal(item.data)}
+                  />
+                );
+              }
+              return (
+                <LineUpCard
+                  key={item.data.id}
+                  task={item.data}
+                  S={S}
+                  onOpen={setTaskModal}
+                  onStatusChange={setStatus}
+                  onHide={hideTask}
+                  onDelete={canDeleteTask(session, item.data) ? handleDelete : undefined}
+                  compact={viewMode === 'compact'}
+                />
+              );
+            })
           )}
         </div>
 
@@ -234,6 +274,7 @@ export default function MemberLineUp() {
       </div>
 
       {taskModal && <TaskModal task={taskModal} onClose={() => setTaskModal(null)} onSaveAsTemplate={(d) => { useUIStore.getState().triggerSaveAsTemplate(d); }} />}
+      {msModal && <MilestoneModal milestone={msModal} onClose={() => setMsModal(null)} onOpenTask={setTaskModal} onCreateTaskForSubstep={undefined} />}
     </div>
   );
 }

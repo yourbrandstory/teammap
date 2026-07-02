@@ -5,9 +5,12 @@ import { today, fmtD, taskTimeStr } from '../lib/constants';
 import { getStatusMaps, getCompleteStatus, getReviewStatus, getPassStatus } from '../utils/statusUtils';
 import { canCreateTask, getDailyActiveCount, getDailyLimit } from '../utils/taskLimits';
 import { getNotesText } from '../utils/notesUtils';
+import { getMilestonesForMemberToday, filterDashboardTasks } from '../utils/milestoneHelpers';
 import Avatar from '../components/Avatar';
 import TaskModal from '../components/TaskModal';
 import TaskSidePanel from '../components/TaskSidePanel';
+import MilestoneModal from '../components/MilestoneModal';
+import MilestoneDashCard from '../components/MilestoneDashCard';
 import CircProg from '../components/CircProg';
 
 export default function MemberTasks() {
@@ -19,6 +22,7 @@ export default function MemberTasks() {
   const reviewStatus = getReviewStatus(S.task_statuses);
   const [dashDate, setDashDate] = useState(today());
   const [modal, setModal] = useState(null);
+  const [msModal, setMsModal] = useState(null);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [viewMode, setViewMode] = useState('myTasks');
 
@@ -121,7 +125,8 @@ export default function MemberTasks() {
                 <div className="tcols" style={{ minWidth: 360 }}>
                   <MemberTaskCol memberId={memberId} date={dashDate} S={S}
                     tasks={visibleTasks} completeStatus={completeStatus}
-                    onOpenTask={openTask} onStatus={setStatus} onHide={hideTask} />
+                    onOpenTask={openTask} onStatus={setStatus} onHide={hideTask}
+                    onOpenMs={setMsModal} />
                 </div>
               )}
             </div>
@@ -161,20 +166,31 @@ export default function MemberTasks() {
       )}
 
       {modal && <TaskModal task={modal} onClose={closeModal} onSaveAsTemplate={(d) => { useUIStore.getState().triggerSaveAsTemplate(d); }} />}
+      {msModal && <MilestoneModal milestone={msModal} onClose={() => setMsModal(null)} onOpenTask={openTask} onCreateTaskForSubstep={undefined} />}
     </div>
   );
 }
 
-function MemberTaskCol({ memberId, date, S, tasks, completeStatus, onOpenTask, onStatus, onHide }) {
+function MemberTaskCol({ memberId, date, S, tasks, completeStatus, onOpenTask, onStatus, onHide, onOpenMs }) {
   const dailyActive = getDailyActiveCount(S, memberId, date);
   const dailyCap = getDailyLimit(S, memberId);
   const member = S.members.find(m => m.id === memberId);
   const capColor = dailyActive > dailyCap ? '#e76f51' : dailyActive === dailyCap ? '#d97706' : 'var(--t2)';
   const limitReached = dailyActive >= dailyCap;
 
+  const memberMilestones = useMemo(() =>
+    getMilestonesForMemberToday(S.milestones, memberId, date),
+    [S.milestones, memberId, date]
+  );
+
+  const visibleTasks = useMemo(() =>
+    filterDashboardTasks(tasks, S.milestones),
+    [tasks, S.milestones]
+  );
+
   const visibleMoods = S.moods.filter(m => !m.hidden);
 
-  const moodMins = (moodId) => tasks.filter(t => t.mood === moodId).reduce((a, t) => a + ((t.estH || 0) * 60 + (t.estM || 0)), 0);
+  const moodMins = (moodId) => visibleTasks.filter(t => t.mood === moodId).reduce((a, t) => a + ((t.estH || 0) * 60 + (t.estM || 0)), 0);
   const hm = (m) => m ? `${Math.floor(m / 60)}h${m % 60 ? ' ' + m % 60 + 'm' : ''}` : null;
 
   const handleAddTask = useCallback((moodId) => {
@@ -217,8 +233,12 @@ function MemberTaskCol({ memberId, date, S, tasks, completeStatus, onOpenTask, o
         </div>
       </div>
       <div className="tcolb">
+        {memberMilestones.filter(ms => !ms.mood).map(ms => (
+          <MilestoneDashCard key={ms.id} milestone={ms} S={S} onClick={() => onOpenMs?.(ms)} />
+        ))}
         {visibleMoods.map(mood => {
-          const mt = tasks.filter(t => t.mood === mood.id);
+          const moodMs = memberMilestones.filter(ms => ms.mood === mood.id);
+          const mt = visibleTasks.filter(t => t.mood === mood.id);
           const isHero = mood.id === 'hero', isImp = mood.id === 'imp';
           const secClass = isHero ? 'hero-sec' : isImp ? 'imp-sec' : 'other-sec';
           const secStyle = isHero ? { background: mood.bg, border: `2px solid ${mood.color}55` }
@@ -236,8 +256,11 @@ function MemberTaskCol({ memberId, date, S, tasks, completeStatus, onOpenTask, o
                 {plusBtn(mood.id, mood.color)}
               </div>
               <div className="msec-tasks">
+                {moodMs.map(ms => (
+                  <MilestoneDashCard key={ms.id} milestone={ms} S={S} onClick={() => onOpenMs?.(ms)} />
+                ))}
                 {mt.length ? mt.map(t => <MTaskCard key={t.id} task={t} S={S} onOpenTask={onOpenTask} onStatus={onStatus} onHide={onHide} />)
-                  : <div style={{ fontSize: 10, color: 'var(--t3)', padding: '5px 4px', fontStyle: 'italic' }}>No active {mood.label}</div>}
+                  : !moodMs.length ? <div style={{ fontSize: 10, color: 'var(--t3)', padding: '5px 4px', fontStyle: 'italic' }}>No active {mood.label}</div> : null}
               </div>
               {addTaskBtn(mood.id)}
             </div>

@@ -43,7 +43,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
   const isEdit = !!task.id;
   const draftId = task.id || '__new__';
-  const draft = useRef(loadDraft(draftId));
+  const draft = useRef(task.id ? loadDraft(draftId) : null);
 
   const initVal = (field, fallback) => draft.current?.[field] ?? fallback;
 
@@ -221,7 +221,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     const hasAssignee = assigned.length > 0;
     if (hasName && hasMood && hasAssignee) {
       flushSave().then(saved => {
-        if (!saved) return;
+        if (!saved && !taskIdRef.current) return;
         clearDraft();
         onClose();
       });

@@ -489,8 +489,6 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
                                       <span className="linked-task-mood">{tm?.icon||''}</span>
                                       <span className="linked-task-name">{lt.name}</span>
                                       <button className="icon-btn edit" title="Open task" onClick={()=>handleOpenTask(lt.id)}>✎</button>
-                                      <button className="icon-btn unlink" title="Unlink" onClick={()=>unlinkFromSubstep(ss.id, ltObj.taskId)}>⊗</button>
-                                      <button className="icon-btn del" title="Delete task" onClick={e=>{e.stopPropagation();handleDeleteTask(ss.id, ltObj);}}>🗑</button>
                                     </div>
                                     <div className="linked-task-meta">
                                       {tc && <span className="linked-task-client" style={{background:(tc.color||'var(--s2)')+'22',color:tc.color||'var(--t2)'}}>{tc.name}</span>}

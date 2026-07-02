@@ -4,9 +4,12 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useStore } from '../store/useStore';
 import { useUIStore } from '../store/useUIStore';
 import useLineUp from '../hooks/useLineUp';
+import { getMilestonesForMemberToday } from '../utils/milestoneHelpers';
 import LineUpHeader from '../components/lineup/LineUpHeader';
 import LineUpCard from '../components/lineup/LineUpCard';
 import HiddenTasksPanel from '../components/HiddenTasksPanel';
+import MilestoneDashCard from '../components/MilestoneDashCard';
+import MilestoneModal from '../components/MilestoneModal';
 import TaskModal from '../components/TaskModal';
 
 export default function LineUp() {
@@ -21,12 +24,45 @@ export default function LineUp() {
   } = useLineUp();
 
   const [mobileHiddenOpen, setMobileHiddenOpen] = useState(false);
+  const [msModal, setMsModal] = useState(null);
 
   const activeTask = activeId ? S.tasks.find((t: any) => t.id === activeId) : null;
 
   const hiddenTasks = useMemo(() => {
     return S.tasks.filter((t: any) => t.date === date && !t.deleted && t.hidden);
   }, [S.tasks, date]);
+
+  const memberMilestones = useMemo(() => {
+    const memberId = filters.member;
+    if (!memberId) return [];
+    return getMilestonesForMemberToday(S.milestones, memberId, date);
+  }, [S.milestones, filters.member, date]);
+
+  const combinedItems = useMemo(() => {
+    const moodOrder = S.moods.map((m: any) => m.id);
+    const tasksByMood: Record<string, any[]> = {};
+    tasks.forEach((t: any) => {
+      const m = t.mood || '__none__';
+      if (!tasksByMood[m]) tasksByMood[m] = [];
+      tasksByMood[m].push(t);
+    });
+    const items: any[] = [];
+    moodOrder.forEach((moodId: string) => {
+      memberMilestones.filter((ms: any) => ms.mood === moodId).forEach((ms: any) => {
+        items.push({ type: 'milestone', data: ms });
+      });
+      (tasksByMood[moodId] || []).forEach((t: any) => {
+        items.push({ type: 'task', data: t });
+      });
+    });
+    (memberMilestones.filter((ms: any) => !ms.mood)).forEach((ms: any) => {
+      items.push({ type: 'milestone', data: ms });
+    });
+    (tasksByMood['__none__'] || []).forEach((t: any) => {
+      items.push({ type: 'task', data: t });
+    });
+    return items;
+  }, [memberMilestones, tasks, S.moods]);
 
   const handleShift = (dir: number, explicitDate?: string) => {
     if (explicitDate !== undefined) { setDate(explicitDate); return; }
@@ -44,7 +80,7 @@ export default function LineUp() {
 
       <div className="lu-body">
         <div className="lu-main">
-          {!tasks.length ? (
+          {!combinedItems.length ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 8, color: 'var(--t3)' }}>
               <div style={{ fontSize: 36 }}>&#128203;</div>
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>No tasks for this date</p>
@@ -56,13 +92,17 @@ export default function LineUp() {
               onDragEnd={handleDragEnd}
               onDragCancel={() => setActiveId(null)}>
               <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                {tasks.map(t => (
-                  <LineUpCard key={t.id} task={t} S={S}
-                    onOpen={setTaskModal}
-                    onStatusChange={setStatus}
-                    onHide={hideTask}
-                    compact={viewMode === 'compact'} />
-                ))}
+                {combinedItems.map(item =>
+                  item.type === 'milestone' ? (
+                    <MilestoneDashCard key={item.data.id} milestone={item.data} S={S} onClick={() => setMsModal(item.data)} />
+                  ) : (
+                    <LineUpCard key={item.data.id} task={item.data} S={S}
+                      onOpen={setTaskModal}
+                      onStatusChange={setStatus}
+                      onHide={hideTask}
+                      compact={viewMode === 'compact'} />
+                  )
+                )}
               </SortableContext>
               <DragOverlay>
                 {activeTask ? <LineUpCard task={activeTask} S={S} isOverlay compact={viewMode === 'compact'} /> : null}
@@ -106,6 +146,7 @@ export default function LineUp() {
       </div>
 
       {taskModal && <TaskModal task={taskModal} onClose={() => setTaskModal(null)} onSaveAsTemplate={(d: any) => { useUIStore.getState().triggerSaveAsTemplate(d); }} />}
+      {msModal && <MilestoneModal milestone={msModal} onClose={() => setMsModal(null)} onOpenTask={setTaskModal} onCreateTaskForSubstep={undefined} />}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { getDeadlineClass, getDeadlineLabel } from '../lib/constants';
 import MilestoneModal from '../components/MilestoneModal';
 import TaskModal from '../components/TaskModal';
 
-export default function MilestonesView() {
+export default function MilestonesView({ memberFilter, hideNewButton }) {
   const S = useStore(s => s.S);
   const upsertMilestone = useStore(s => s.upsertMilestone);
   const delMilestone = useStore(s => s.delMilestone);
@@ -65,13 +65,17 @@ export default function MilestonesView() {
   }, []);
 
   const activeMilestones = useMemo(() => {
-    return S.milestones.filter(m => !m.deleted).sort((a, b) => {
+    let ms = S.milestones.filter(m => !m.deleted);
+    if (memberFilter) {
+      ms = ms.filter(m => (m.assignedTo || []).includes(memberFilter));
+    }
+    return ms.sort((a, b) => {
       if (!a.deadline && !b.deadline) return 0;
       if (!a.deadline) return 1;
       if (!b.deadline) return -1;
       return a.deadline < b.deadline ? -1 : 1;
     });
-  }, [S.milestones]);
+  }, [S.milestones, memberFilter]);
 
   const filteredMilestones = useMemo(() => {
     if (!clientFilter) return activeMilestones;
@@ -93,7 +97,7 @@ export default function MilestonesView() {
     <div className="mv-wrap">
       <div className="mv-header">
         <span className="stl">◆ Milestones</span>
-        <button className="mv-new-btn" onClick={() => setModal({})}>+ New Milestone</button>
+        {!hideNewButton && <button className="mv-new-btn" onClick={() => setModal({})}>+ New Milestone</button>}
       </div>
 
       {clients.length > 0 && (

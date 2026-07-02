@@ -6,11 +6,13 @@ import MemberPlayground from './MemberPlayground';
 import MemberKanban from './MemberKanban';
 import MemberTasks from './MemberTasks';
 import MemberSentView from './MemberSentView';
+import MilestonesView from './MilestonesView';
 import Toast from '../components/Toast';
 
 const TABS = [
   { id: 'tk', label: 'Tasks', icon: '🗂️' },
   { id: 'lu', label: 'Line Up', icon: '📋' },
+  { id: 'ms', label: 'Milestones', icon: '◆' },
   { id: 'pg', label: 'Playground', icon: '◢' },
   { id: 'kb', label: 'Kanban', icon: '📌' },
   { id: 'sn', label: 'Sent', icon: '📤' },
@@ -136,6 +138,7 @@ export default function MemberView() {
 
       {/* ── Tab content — all mounted, inactive hidden with display:none ── */}
       <div className="member-tab-content" style={{ display: tab === 'lu' ? '' : 'none' }}><MemberLineUp /></div>
+      <div className="member-tab-content" style={{ display: tab === 'ms' ? '' : 'none' }}><MilestonesView memberFilter={memberId} hideNewButton /></div>
       <div className="member-tab-content" style={{ display: tab === 'pg' ? '' : 'none' }}><MemberPlayground /></div>
       <div className="member-tab-content" style={{ display: tab === 'kb' ? '' : 'none' }}><MemberKanban /></div>
       <div className="member-tab-content" style={{ display: tab === 'tk' ? '' : 'none' }}><MemberTasks /></div>
