@@ -24,14 +24,14 @@ export default function MemberTasks() {
   const [modal, setModal] = useState(null);
   const [msModal, setMsModal] = useState(null);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
-  const handleOpenMilestoneFromTask = useCallback((ms) => {
-    closeModal();
-    setTimeout(() => setMsModal(ms), 100);
-  }, [closeModal]);
   const [viewMode, setViewMode] = useState('myTasks');
 
   const openTask = useCallback((t) => setModal(t), []);
   const closeModal = useCallback(() => setModal(null), []);
+  const handleOpenMilestoneFromTask = useCallback((ms) => {
+    closeModal();
+    setTimeout(() => setMsModal(ms), 100);
+  }, [closeModal]);
 
   const shift = (days) => {
     const d = new Date(dashDate + 'T12:00:00'); d.setDate(d.getDate() + days);

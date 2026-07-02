@@ -87,6 +87,16 @@ create table if not exists app_state (
   value  jsonb
 );
 
+-- ── line_up: per-member, per-date task ordering (shared across all users) ────
+create table if not exists line_up (
+  member_id   text not null,
+  date        text not null,
+  task_order  text[] not null default '{}',
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now(),
+  primary key (member_id, date)
+);
+
 -- ── helpers: role checks ────────────────────────────────────────────────────
 create or replace function is_admin() returns boolean
 language sql security definer stable as $$
@@ -107,6 +117,7 @@ alter table tasks      enable row level security;
 alter table milestones enable row level security;
 alter table tags       enable row level security;
 alter table app_state  enable row level security;
+alter table line_up    enable row level security;
 
 -- profiles: a user can read their own profile; admins can read all.
 drop policy if exists profiles_read on profiles;
@@ -166,6 +177,12 @@ drop policy if exists members_write on members;
 create policy members_write on members for all
   using (is_admin())
   with check (is_admin());
+
+-- line_up: all authenticated users can read/write (shared workspace state)
+drop policy if exists line_up_all on line_up;
+create policy line_up_all on line_up for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
 
 -- ── make yourself admin after creating your auth user ───────────────────────
 -- 1) Authentication → Users → Add user (email + password) — that's your admin login.

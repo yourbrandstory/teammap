@@ -19,7 +19,7 @@ function getStoredViewMode(): 'priority' | 'compact' {
 export default function useLineUp() {
   const S = useStore(s => s.S);
   const upsertTask = useStore(s => s.upsertTask);
-  const setStateKey = useStore(s => s.setStateKey);
+  const saveLineUp = useStore(s => s.saveLineUp);
   const uiViewState = useUIStore(s => s.viewStates.lu || {});
   const setViewState = useUIStore(s => s.setViewState);
 
@@ -49,7 +49,9 @@ export default function useLineUp() {
 
   const goToday = useCallback(() => setDate(today()), []);
 
-  const tasks = getFilteredAndSortedTasks(S, date, filters, sortMode, S.task_statuses);
+  const memberKey = filters.member || '__global__';
+  const taskOrder = S.lineUp?.[memberKey]?.[date] || [];
+  const tasks = getFilteredAndSortedTasks(S, date, filters, sortMode, S.task_statuses, taskOrder);
   const allOnDate = S.tasks.filter((t: any) => t.date === date && !t.deleted);
   const prog = dayProgress(allOnDate, S.task_statuses);
 
@@ -85,9 +87,10 @@ export default function useLineUp() {
     if (oldIdx === -1 || newIdx === -1) { setActiveId(null); return; }
     ids.splice(oldIdx, 1);
     ids.splice(newIdx, 0, active.id as string);
-    setStateKey('lineUpOrder', { ...S.lineUpOrder, [date]: ids });
+    const key = filters.member || '__global__';
+    saveLineUp(key, date, ids);
     setActiveId(null);
-  }, [tasks, S.lineUpOrder, date, setStateKey]);
+  }, [tasks, date, saveLineUp, filters.member]);
 
   const setFilter = useCallback((key: keyof Filters, value: string | boolean) => {
     setFilters(prev => ({ ...prev, [key]: value }));

@@ -55,7 +55,7 @@ export default function MemberLineUp() {
   const myTasksOnDate = useMemo(() => {
     if (!memberId) return [];
     const myTasks = sel.tasksForMD(S, memberId, date);
-    const order = S.lineUpOrder[date] || [];
+    const order = S.lineUp?.[memberId]?.[date] || S.lineUpOrder?.[date] || [];
     const ordered = [];
     const remaining = [...myTasks];
     order.forEach(id => {

@@ -68,6 +68,7 @@ const STATE_KEYS = ['settings','moods','navOrder','navLabels','freqTags','templa
 
 const EMPTY_S = {
   members:[], clients:[], links:[], tasks:[], milestones:[], tags:[],
+  lineUp: {},
   moods: JSON.parse(JSON.stringify(DMOODS)),
   settings:{ maxCap:6, weekends:false, spMember:null },
   navOrder:[...DEFAULT_NAV_ORDER], navLabels:{...DEFAULT_NAV_LABELS},
@@ -162,7 +163,7 @@ export const useStore = create((set, get) => ({
         get()._stopPeriodicSync();
         set({
           session: null, role: null,
-          S: JSON.parse(JSON.stringify(EMPTY_S)),
+  S: JSON.parse(JSON.stringify(EMPTY_S)),
           loading: false, isAuthLoading: false, _rtChannel: null, _bcChannel: null,
         });
       }
@@ -219,6 +220,9 @@ export const useStore = create((set, get) => ({
     const [st] = await Promise.all([
       supabase.from('app_state').select('*'),
     ]);
+    const [lineUpRows] = await Promise.all([
+      supabase.from('line_up').select('*'),
+    ]);
 
     console.log('[loadAll] tasks raw from DB:', tasks.data?.length, 'rows');
     if (tasks.data?.length) {
@@ -256,6 +260,14 @@ export const useStore = create((set, get) => ({
 
     let hasAppStateMoods = false;
     (st.data||[]).forEach(r => { if (STATE_KEYS.includes(r.key)) { S[r.key] = r.value; if (r.key === 'moods') hasAppStateMoods = true; } });
+    // Load per-member line_up data, with fallback to legacy app_state lineUpOrder
+    (lineUpRows.data||[]).forEach(r => {
+      if (!S.lineUp[r.member_id]) S.lineUp[r.member_id] = {};
+      S.lineUp[r.member_id][r.date] = r.task_order || [];
+    });
+    if (S.lineUpOrder && Object.keys(S.lineUpOrder).length && !S.lineUp.__global__) {
+      S.lineUp.__global__ = { ...S.lineUpOrder };
+    }
 
     // ── Sort members by saved memberOrder ──
     if (S.memberOrder && S.memberOrder.length) {
@@ -339,7 +351,6 @@ export const useStore = create((set, get) => ({
         (payload) => {
           const { new: row, eventType } = payload;
           const rid = row?.id;
-          // Deduplicate: skip if already processed via broadcast
           if (rid && wasBroadcast(rid)) {
             set({ _lastRealtimeEvent: Date.now() });
             return;
@@ -361,9 +372,27 @@ export const useStore = create((set, get) => ({
           set({ _lastRealtimeEvent: Date.now() });
         }
       )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'line_up' },
+        (payload) => {
+          const row = payload.new;
+          if (!row?.member_id || !row?.date) return;
+          const mid = row.member_id;
+          const date = row.date;
+          const taskOrder = row.task_order || [];
+          set((s) => {
+            const next = { ...s };
+            const S = { ...next.S, lineUp: { ...next.S.lineUp } };
+            if (!S.lineUp[mid]) S.lineUp[mid] = {};
+            S.lineUp[mid] = { ...S.lineUp[mid], [date]: taskOrder };
+            next.S = S;
+            return next;
+          });
+        }
+      )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] tasks channel subscribed');
+          console.log('[Realtime] tasks + line_up channel subscribed');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('[Realtime] tasks channel error — will retry in 10s');
           setTimeout(() => { try { get()._subscribeRealtime(); } catch {} }, 10000);
@@ -372,7 +401,7 @@ export const useStore = create((set, get) => ({
           setTimeout(() => { try { get()._subscribeRealtime(); } catch {} }, 5000);
         }
       });
-    set({ _rtChannel: channel, _lastRealtimeEvent: Date.now() });
+    set({ _rtChannel: channel });
   },
 
   _startPeriodicSync: () => {
@@ -804,6 +833,27 @@ export const useStore = create((set, get) => ({
   },
   setStateKey: async (key, value) => { get()._patchS((S)=>{ S[key]=value; }); await get()._persistState(key); },
 
+  // ── LINE UP (per-member, persisted to line_up table, realtime) ─────────────
+  saveLineUp: async (memberId, date, taskOrder) => {
+    const now = Date.now();
+    set((s) => {
+      const S = { ...s.S, lineUp: { ...s.S.lineUp } };
+      if (!S.lineUp[memberId]) S.lineUp[memberId] = {};
+      S.lineUp[memberId] = { ...S.lineUp[memberId], [date]: taskOrder };
+      // Keep legacy lineUpOrder in sync for components that still read it
+      if (memberId === '__global__') {
+        S.lineUpOrder = { ...s.S.lineUpOrder, [date]: taskOrder };
+      }
+      return { ...s, S };
+    });
+    get().flashSaved();
+    const { error } = await supabase.from('line_up').upsert(
+      { member_id: memberId, date, task_order: taskOrder, updated_at: now },
+      { onConflict: 'member_id,date' }
+    );
+    if (error) console.error('[saveLineUp] error:', error);
+  },
+
   // ── JSON import / export ──────────────────────────────────────────────────
   exportJSON: () => {
     const S = get().S;
@@ -824,6 +874,14 @@ export const useStore = create((set, get) => ({
     if (!S.serviceCategories) S.serviceCategories = JSON.parse(JSON.stringify(DEFAULT_SERVICE_CATEGORIES));
     if (!S.settings) S.settings = { maxCap:6, weekends:false, spMember:S.members?.[0]?.id||null };
 
+    const lineUpRows = [];
+    if (S.lineUp) {
+      for (const memberId of Object.keys(S.lineUp)) {
+        for (const date of Object.keys(S.lineUp[memberId] || {})) {
+          lineUpRows.push({ member_id: memberId, date, task_order: S.lineUp[memberId][date] });
+        }
+      }
+    }
     const chunks = [
       supabase.from('members').upsert((S.members||[]).map(memberToRow)),
       supabase.from('clients').upsert((S.clients||[]).map(clientToRow)),
@@ -832,6 +890,7 @@ export const useStore = create((set, get) => ({
       supabase.from('tags').upsert((S.tags||[]).map(tagToRow)),
       supabase.from('service_categories').upsert((S.serviceCategories||[]).map(tagToRow)),
       ...(S.tasks?.length ? [supabase.from('tasks').upsert(S.tasks.map(taskToRow))] : []),
+      ...(lineUpRows.length ? [supabase.from('line_up').upsert(lineUpRows, { onConflict: 'member_id,date' })] : []),
       ...STATE_KEYS.map(k => supabase.from('app_state').upsert({ key:k, value:S[k] })),
     ];
     const results = await Promise.all(chunks);

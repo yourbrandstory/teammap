@@ -12,7 +12,8 @@ interface AppState {
   members: Member[];
   clients: Client[];
   moods: Mood[];
-  lineUpOrder: Record<string, string[]>;
+  lineUpOrder?: Record<string, string[]>;
+  lineUp?: Record<string, Record<string, string[]>>;
 }
 
 type SortMode = 'mood' | 'team' | 'client' | null;
@@ -26,7 +27,7 @@ export function getCardSize(moodId: string, moods: Mood[]): CardSize {
   return CARD_SIZES[moodId] || 'narrow';
 }
 
-export function getFilteredAndSortedTasks(S: AppState, date: string, filters: Filters, sortMode: SortMode, taskStatuses?: any[]): Task[] {
+export function getFilteredAndSortedTasks(S: AppState, date: string, filters: Filters, sortMode: SortMode, taskStatuses?: any[], taskOrder?: string[]): Task[] {
   let tasks = S.tasks.filter(t => t.date === date && !t.deleted && !t.hidden && t.status !== getCompleteStatus(taskStatuses));
 
   if (filters.member) tasks = tasks.filter(t => t.assignedTo && t.assignedTo.includes(filters.member));
@@ -62,8 +63,8 @@ export function getFilteredAndSortedTasks(S: AppState, date: string, filters: Fi
     });
   }
 
-  // No sort: use drag order
-  const order = S.lineUpOrder[date] || [];
+  // No sort: use drag order (from parameter, or fallback to legacy lineUpOrder)
+  const order = taskOrder || S.lineUpOrder?.[date] || [];
   const ordered: Task[] = [];
   const remaining = [...tasks];
   order.forEach(id => {
