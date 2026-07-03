@@ -120,18 +120,22 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     };
   });
 
-  const doSave = useCallback(() => {
+  const doSave = useCallback((overrideSubsteps) => {
     const result = saveQueue.current.catch(() => {}).then(async () => {
       const f = fieldsRef.current;
       const currentId = milestoneIdRef.current;
       if (!f.title?.trim() || !f.clientId || !f.assignedTo?.length) return null;
 
+      const substepsToSave = overrideSubsteps !== undefined
+        ? overrideSubsteps.map(s => ({ ...s }))
+        : f.substeps.map(s => ({ ...s }));
+
       const snapshot = JSON.stringify([
         f.title.trim(), f.mood || '', [...f.assignedTo].sort(),
         f.clientId || '', f.date || '', f.deadline || '',
-        JSON.stringify(f.substeps), f.displayMode || 'daily', [...f.displayDays].sort(),
+        JSON.stringify(substepsToSave), f.displayMode || 'daily', [...f.displayDays].sort(),
       ]);
-      if (snapshot === lastSnapshot.current && currentId) return null;
+      if (snapshot === lastSnapshot.current && currentId && !overrideSubsteps) return null;
 
       if (mountedRef.current) setSaveStatus('saving');
 
@@ -139,7 +143,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
         ...(currentId ? { id: currentId } : {}),
         title: f.title.trim(), mood: f.mood || '', assignedTo: [...f.assignedTo],
         clientId: f.clientId || null, date: f.date || '', deadline: f.deadline || null,
-        substeps: f.substeps.map(s => ({ ...s })),
+        substeps: substepsToSave,
         displayMode: f.displayMode || 'daily', displayDays: [...f.displayDays],
       };
       payload.deleted = false;
@@ -242,10 +246,10 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
   };
 
   const toggleSubstep = (ssId) => {
-    setM(prev => ({
-      ...prev,
-      substeps: prev.substeps.map(s => s.id === ssId ? { ...s, done: !s.done } : s)
-    }));
+    const cur = fieldsRef.current.substeps || [];
+    const newSubsteps = cur.map(s => s.id === ssId ? { ...s, done: !s.done } : s);
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    doSave(newSubsteps);
   };
 
   const updateSubstepTitle = (ssId, title) => {
@@ -257,43 +261,49 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
 
   const addSubstep = () => {
     const newSs = { id: uid(), title: '', done: false, linkedTasks: [] };
-    setM(prev => ({ ...prev, substeps: [...prev.substeps, newSs] }));
+    const cur = fieldsRef.current.substeps || [];
+    const newSubsteps = [...cur, newSs];
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
     setExpandedSS(prev => ({ ...prev, [newSs.id]: true }));
+    doSave(newSubsteps);
   };
 
   const removeSubstep = (ssId) => {
-    setM(prev => ({ ...prev, substeps: prev.substeps.filter(s => s.id !== ssId) }));
+    const cur = fieldsRef.current.substeps || [];
+    const newSubsteps = cur.filter(s => s.id !== ssId);
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    doSave(newSubsteps);
   };
 
   const linkTaskToSubstep = (ssId, taskId) => {
-    setM(prev => ({
-      ...prev,
-      substeps: prev.substeps.map(s => s.id === ssId ? {
-        ...s,
-        linkedTasks: [...(s.linkedTasks||[]), { taskId, showOnDashboard: true }]
-      } : s)
-    }));
+    const cur = fieldsRef.current.substeps || [];
+    const newSubsteps = cur.map(s => s.id === ssId ? {
+      ...s,
+      linkedTasks: [...(s.linkedTasks||[]), { taskId, showOnDashboard: true }]
+    } : s);
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
     setTaskSearch(null);
     setSearchQ('');
+    doSave(newSubsteps);
   };
 
   const unlinkFromSubstep = (ssId, taskId) => {
-    setM(prev => ({
-      ...prev,
-      substeps: prev.substeps.map(s => s.id === ssId ? { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== taskId) } : s)
-    }));
+    const cur = fieldsRef.current.substeps || [];
+    const newSubsteps = cur.map(s => s.id === ssId ? { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== taskId) } : s);
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    doSave(newSubsteps);
   };
 
   const toggleTaskDashVisibility = (ssId, taskId) => {
-    setM(prev => ({
-      ...prev,
-      substeps: prev.substeps.map(s => s.id === ssId ? {
-        ...s,
-        linkedTasks: (s.linkedTasks||[]).map(lt =>
-          lt.taskId === taskId ? { ...lt, showOnDashboard: !lt.showOnDashboard } : lt
-        )
-      } : s)
-    }));
+    const cur = fieldsRef.current.substeps || [];
+    const newSubsteps = cur.map(s => s.id === ssId ? {
+      ...s,
+      linkedTasks: (s.linkedTasks||[]).map(lt =>
+        lt.taskId === taskId ? { ...lt, showOnDashboard: !lt.showOnDashboard } : lt
+      )
+    } : s);
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    doSave(newSubsteps);
   };
 
   const toggleDisplayDays = (day) => {
@@ -351,10 +361,10 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
   const handleDeleteTask = (ssId, ltObj) => {
     if (!confirm('Delete this task? This cannot be undone.')) return;
     softDeleteTask(ltObj.taskId);
-    setM(prev => ({
-      ...prev,
-      substeps: prev.substeps.map(s => s.id === ssId ? { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== ltObj.taskId) } : s)
-    }));
+    const cur = fieldsRef.current.substeps || [];
+    const newSubsteps = cur.map(s => s.id === ssId ? { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== ltObj.taskId) } : s);
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    doSave(newSubsteps);
   };
 
   const handleCreateAndLink = (ssId) => {
