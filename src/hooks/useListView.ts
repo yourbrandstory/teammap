@@ -55,6 +55,10 @@ export default function useListView() {
     setLvSort(prev => toggleSort(prev, col));
   }, []);
 
+  const setSort = useCallback((col: string, dir: 'asc' | 'desc') => {
+    setLvSort({ col, dir });
+  }, []);
+
   const openTask = useCallback((task: any) => {
     setTaskModal(task);
   }, []);
@@ -65,6 +69,6 @@ export default function useListView() {
 
   return {
     S, tasks, lvSort, lvFilters, taskModal, activeCount, totalCount,
-    setFilter, clearFilters, toggleHideCompleted, sortBy, openTask, setTaskModal, deleteTask,
+    setFilter, clearFilters, toggleHideCompleted, sortBy, setSort, openTask, setTaskModal, deleteTask,
   };
 }

@@ -116,6 +116,17 @@ export function reorderItems<T extends { id: string }>(items: T[], dragId: strin
   return copy;
 }
 
+export function getDayFreqTagIds(freqTags: FreqTag[]): string[] {
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = dayNames[new Date().getDay()];
+  return freqTags
+    .filter(ft => {
+      const label = ft.label.toLowerCase();
+      return label === 'daily' || label === todayName;
+    })
+    .map(ft => ft.id);
+}
+
 export function sortTemplatesByFreq(templates: Template[], freqTags: FreqTag[]): Template[] {
   const fo = freqTags.map(f => f.id);
   return [...templates].sort((a, b) => {

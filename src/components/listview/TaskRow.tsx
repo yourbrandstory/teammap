@@ -9,6 +9,17 @@ interface Props {
   onDelete: (taskId: string) => void;
 }
 
+function getTaskMilestone(taskId: string, milestones: any[]) {
+  if (!taskId || !milestones) return null;
+  for (const ms of milestones) {
+    if (ms.deleted) continue;
+    for (const ss of (ms.substeps || [])) {
+      if ((ss.linkedTasks || []).some((lt: any) => lt.taskId === taskId)) return ms;
+    }
+  }
+  return null;
+}
+
 export default function TaskRow({ task, S, onOpen, onDelete }: Props) {
   const mood = sel.gmood(S, task.mood);
   const client = sel.gc(S, task.clientId);
@@ -18,7 +29,7 @@ export default function TaskRow({ task, S, onOpen, onDelete }: Props) {
   const taskTags = (task.tags || [])
     .map((tid: string) => { const tg = sel.gtag(S, tid); return tg ? tg.label : ''; })
     .filter(Boolean);
-  const ms = task.milestoneId ? S.milestones.find((m: any) => m.id === task.milestoneId) : null;
+  const ms = getTaskMilestone(task.id, S.milestones);
   const timeStr = taskTimeStr(task);
   const { STC, STB } = getStatusMaps(S.task_statuses);
 
@@ -74,7 +85,7 @@ export default function TaskRow({ task, S, onOpen, onDelete }: Props) {
           : <span style={{ color: 'var(--t3)' }}>&mdash;</span>}
       </td>
       <td style={{ fontSize: 11, color: 'var(--t2)' }}>
-        {ms ? ms.name : <span style={{ color: 'var(--t3)' }}>&mdash;</span>}
+        {ms ? ms.title : <span style={{ color: 'var(--t3)' }}>&mdash;</span>}
       </td>
       <td onClick={(e) => e.stopPropagation()}>
         <button className="btn btn-xs btn-d" onClick={() => onDelete(task.id)}>&#128465;</button>

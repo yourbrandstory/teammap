@@ -115,6 +115,8 @@ export default function TaskGen2() {
 
   const pendingTemplateData = useUIStore(s => s.pendingTemplateData);
   const setPendingTemplateData = useUIStore(s => s.setPendingTemplateData);
+  const pendingEditTemplate = useUIStore(s => s.pendingEditTemplate);
+  const setPendingEditTemplate = useUIStore(s => s.setPendingEditTemplate);
 
   useEffect(() => {
     if (pendingTemplateData) {
@@ -122,6 +124,13 @@ export default function TaskGen2() {
       setPendingTemplateData(null);
     }
   }, [pendingTemplateData]);
+
+  useEffect(() => {
+    if (pendingEditTemplate) {
+      handleOpenEditTmpl(pendingEditTemplate);
+      setPendingEditTemplate(null);
+    }
+  }, [pendingEditTemplate]);
 
   const [tmplTDetailTab, setTmplTDetailTab] = useState('sub');
   const [tmplNewSubtask, setTmplNewSubtask] = useState('');
@@ -265,11 +274,11 @@ export default function TaskGen2() {
         <button className="tg2-mobile-sidebar-btn" onClick={() => setMobileSidebarOpen(o => !o)} aria-label="Toggle sidebar">
           &#9776;
         </button>
-        <div className={`tg2-tab${tg2Tab === 'templates' ? ' active' : ''}`} onClick={() => switchTab('templates')}>
-          &#128196; Project Templates
-        </div>
         <div className={`tg2-tab${tg2Tab === 'all' ? ' active' : ''}`} onClick={() => switchTab('all')}>
           &#9783; All Templates
+        </div>
+        <div className={`tg2-tab${tg2Tab === 'templates' ? ' active' : ''}`} onClick={() => switchTab('templates')}>
+          &#128196; Project Templates
         </div>
         <div className={`tg2-tab${tg2Tab === 'ms' ? ' active' : ''}`} onClick={() => switchTab('ms')}>
           &#127937; Milestone Links

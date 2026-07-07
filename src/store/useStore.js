@@ -306,6 +306,12 @@ export const useStore = create((set, get) => ({
       supabase.from('app_state').upsert({ key: 'navLabels', value: S.navLabels }).then();
     }
 
+    // ── Rename 'Task Gen 2.0' to 'Routines' in navLabels ──
+    if (S.navLabels && S.navLabels.tg2 === 'Task Gen 2.0') {
+      S.navLabels = { ...S.navLabels, tg2: 'Routines' };
+      supabase.from('app_state').upsert({ key: 'navLabels', value: S.navLabels }).then();
+    }
+
     const subtaskCount = S.tasks.reduce((a, t) => a + (t.subtasks?.length || 0), 0);
     const linkCount = S.tasks.reduce((a, t) => a + (t.links?.length || 0), 0);
     const tasksWithSubtasks = S.tasks.filter(t => t.subtasks?.length > 0).length;

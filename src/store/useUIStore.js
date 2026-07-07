@@ -41,6 +41,7 @@ export const useUIStore = create(
       _toastTimer: null,
 
       pendingTemplateData: null,
+      pendingEditTemplate: null,
 
       setToast: (msg, duration = 4000) => {
         const timer = get()._toastTimer;
@@ -63,6 +64,10 @@ export const useUIStore = create(
       setPendingTemplateData: (data) => set({ pendingTemplateData: data }),
 
       triggerSaveAsTemplate: (data) => set({ pendingTemplateData: data, view: 'tg2' }),
+
+      setPendingEditTemplate: (data) => set({ pendingEditTemplate: data }),
+
+      triggerEditTemplate: (tmpl) => set({ pendingEditTemplate: tmpl, view: 'tg2' }),
 
       setViewState: (viewKey, patch) =>
         set((s) => ({
@@ -90,6 +95,7 @@ export const useUIStore = create(
         ...current,
         ...persisted,
         pendingTemplateData: null,
+        pendingEditTemplate: null,
       }),
       version: 1,
     }

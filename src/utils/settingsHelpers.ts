@@ -34,12 +34,12 @@ export function makeMood(label: string, icon: string, desc: string, max: number 
 }
 
 export const NAV_ICONS: Record<string, string> = {
-  tkd: '📊', tg2: '💡', lu: '📋', lv: '☷',
+  tkd: '📊', tg2: '🔄', lu: '📋', lv: '☷',
   tk: '☰', td: '▣', bl: '◯', pg: '◢', st: '⚙',
 };
 
 export const DEFAULT_NAV_ORDER = ['tkd', 'tg2', 'lu', 'lv', 'tk', 'td', 'bl', 'pg', 'st'];
 export const DEFAULT_NAV_LABELS: Record<string, string> = {
-  tkd: 'Task Dashboard', tg2: 'Task Gen 2.0', lu: 'Line Up', lv: 'List View',
+  tkd: 'Task Dashboard', tg2: 'Routines', lu: 'Line Up', lv: 'List View',
   tk: 'Tasks & Milestones', td: 'Team Dashboard', bl: 'Builder', pg: 'Playground', st: 'Settings',
 };

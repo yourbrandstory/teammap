@@ -1,22 +1,34 @@
 import { useState } from 'react';
 import { getStatusMaps, getReviewStatus } from '../../utils/statusUtils';
 import { useStore, sel } from '../../store/useStore';
-import type { LVFilters } from '../../utils/listViewHelpers';
+import type { LVFilters, LVSort } from '../../utils/listViewHelpers';
 
 interface Props {
   S: any;
+  lvSort: LVSort;
   lvFilters: LVFilters;
   activeCount: number;
   totalCount: number;
   onSetFilter: (key: string, value: string) => void;
   onClearFilters: () => void;
   onToggleHideCompleted: () => void;
+  onSetSort: (col: string, dir: 'asc' | 'desc') => void;
   onNewTask: () => void;
 }
 
+const SORT_OPTIONS = [
+  { label: 'Date ↓', col: 'date', dir: 'desc' },
+  { label: 'Date ↑', col: 'date', dir: 'asc' },
+  { label: 'Name A–Z', col: 'name', dir: 'asc' },
+  { label: 'Name Z–A', col: 'name', dir: 'desc' },
+  { label: 'Mood', col: 'mood', dir: 'asc' },
+  { label: 'Status', col: 'status', dir: 'asc' },
+  { label: 'Client', col: 'client', dir: 'asc' },
+];
+
 export default function ListToolbar({
-  S, lvFilters, activeCount, totalCount,
-  onSetFilter, onClearFilters, onToggleHideCompleted, onNewTask,
+  S, lvSort, lvFilters, activeCount, totalCount,
+  onSetFilter, onClearFilters, onToggleHideCompleted, onSetSort, onNewTask,
 }: Props) {
   const session = useStore(s => s.session);
   const isManager = session?.role === 'admin' || session?.role === 'manager';
@@ -103,6 +115,12 @@ export default function ListToolbar({
         <option value="">All tags</option>
         {(S.tags || []).map((t: any) => (
           <option key={t.id} value={t.id}>{t.label}</option>
+        ))}
+      </FilterSelect>
+
+      <FilterSelect label="Sort" value={`${lvSort.col}:${lvSort.dir}`} onChange={v => { const [col, dir] = v.split(':'); onSetSort(col, dir as 'asc' | 'desc'); }}>
+        {SORT_OPTIONS.map(o => (
+          <option key={`${o.col}:${o.dir}`} value={`${o.col}:${o.dir}`}>{o.label}</option>
         ))}
       </FilterSelect>
 

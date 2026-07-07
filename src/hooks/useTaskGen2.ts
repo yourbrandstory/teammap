@@ -6,7 +6,7 @@ import { getDefaultStatus, getCompleteStatus, getPassStatus } from '../utils/sta
 import type { TG2AllMulti, Template } from '../utils/taskGen2Helpers';
 import {
   filterTemplatesAll, toggleMulti, saveView, loadView, deleteView,
-  reorderItems, sortTemplatesByFreq,
+  reorderItems, sortTemplatesByFreq, getDayFreqTagIds,
 } from '../utils/taskGen2Helpers';
 
 export default function useTaskGen2() {
@@ -18,7 +18,7 @@ export default function useTaskGen2() {
   const uiViewState = useUIStore(s => s.viewStates.tg2 || {});
   const setViewState = useUIStore(s => s.setViewState);
 
-  const [tg2Tab, setTg2Tab] = useState(uiViewState.tg2Tab || 'templates');
+  const [tg2Tab, setTg2Tab] = useState(uiViewState.tg2Tab || 'all');
   const [tg2SelProject, setTg2SelProject] = useState<string | null>(uiViewState.tg2SelProject ?? null);
   const [projSortModes, setProjSortModes] = useState<Record<string, string>>(uiViewState.projSortModes || {});
   const [tg2AllMulti, setTg2AllMulti] = useState<TG2AllMulti>(uiViewState.tg2AllMulti || { freqs: [], clients: [], members: [], moods: [] });
@@ -36,6 +36,15 @@ export default function useTaskGen2() {
     (S.freqTags || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0)),
     [S.freqTags],
   );
+
+  useEffect(() => {
+    if (tg2Tab === 'all' && !tg2AllMulti.freqs.length) {
+      const dayIds = getDayFreqTagIds(freqTags);
+      if (dayIds.length) {
+        setTg2AllMulti(prev => ({ ...prev, freqs: dayIds }));
+      }
+    }
+  }, [tg2Tab, freqTags]);
 
   const sortedClients: any[] = useMemo(() => sel.scl(S), [S.clients]);
 

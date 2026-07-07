@@ -7,7 +7,6 @@ import { useStore, sel } from '../store/useStore';
 import { getStatusMaps, getDefaultStatus, getCompleteStatus, getPassStatus, getStatusesForRole, canDeleteTask } from '../utils/statusUtils';
 import { validateTaskCreation, getMoodLimit } from '../utils/taskLimits';
 import Avatar from './Avatar';
-import RichTextEditor from './ui/RichTextEditor';
 
 const DRAFT_KEY = 'tm_task_draft';
 
@@ -499,6 +498,15 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
         <input ref={taskNameRef} id="tn" type="text" placeholder="What needs to be done?" value={name}
           className={err.name?'req':''} onChange={e=>setName(e.target.value)} />
 
+        <label className="fl" style={{marginTop:10}}>Notes</label>
+        <textarea placeholder="Add any notes about this task\u2026" value={notes}
+          onChange={e=>setNotes(e.target.value)}
+          style={{width:'100%',minHeight:60,padding:'9px 12px',fontSize:13,fontFamily:'inherit',
+            border:'1.5px solid var(--border)',borderRadius:'var(--r)',outline:'none',
+            background:'var(--surface)',color:'var(--text)',resize:'vertical',lineHeight:1.5}}
+          onFocus={e=>e.target.style.borderColor='var(--accent)'}
+          onBlur={e=>e.target.style.borderColor='var(--border)'} />
+
         {/* ── Section tabs ── */}
         <div className="modal-section-tabs">
           <button className={`modal-section-tab${tab==='essentials'?' active':''}`} onClick={()=>setTab('essentials')}>Section 1 &mdash; Essentials</button>
@@ -610,9 +618,6 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
         {/* ── Section 2 — Details ── */}
         <div className={`modal-section${tab==='details'?' active':''}`}>
-          <label className="fl">Notes</label>
-          <RichTextEditor value={notes} onChange={setNotes} />
-
           <label className="fl">Tags</label>
           <div className="tag-chip-pick horizontal-scroll">
             {(S.tags||[]).map(tg => (
