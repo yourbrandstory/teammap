@@ -476,8 +476,26 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--ac
 .ms-dash-card .ms-dash-progress .ms-dash-bar{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
 .ms-dash-card .ms-dash-progress .ms-dash-bar .ms-dash-fill{height:100%;background:var(--accent);border-radius:2px;transition:.3s}
 .ms-dash-card .ms-dash-progress .ms-dash-pct{font-size:9px;font-weight:700;color:var(--t2);white-space:nowrap}
+.ms-dash-card .ms-dash-progress .ms-dash-deadline-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;padding:2px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0;margin-left:6px}
+.ms-dash-card .ms-dash-progress .ms-dash-deadline-badge.overdue{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+.ms-dash-card .ms-dash-progress .ms-dash-deadline-badge.today{background:#FEF9C3;color:#854D0E;border:1px solid #FDE047}
+.ms-dash-card .ms-dash-progress .ms-dash-deadline-badge.soon{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0}
 .ms-dash-card .ms-dash-meta{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .ms-dash-card .ms-dash-meta .ms-dash-chip{font-size:9px;padding:1px 6px;border-radius:10px;font-weight:600;white-space:nowrap}
+
+/* ── DEADLINE SUMMARY BADGES (dashboard card) ──────────── */
+.ms-dash-summary{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:nowrap}
+.ms-sum-overdue{font-size:10px;font-weight:600;color:#DC2626;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.ms-sum-today{font-size:10px;font-weight:600;color:#D97706;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.ms-sum-sep{font-size:10px;color:#C4B5FD;margin:0 1px}
+
+/* ── SUBSTEP STATUS DOT (modal header) ─────────────────── */
+.ss-status-dot{font-size:10px;font-weight:600;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:3px}
+.ss-status-overdue{color:#DC2626}
+.ss-status-today{color:#D97706}
+
+/* ── SUBSTEP NOTIFICATION DOT (on task count chip) ─────── */
+.ss-notif-dot{width:14px;height:14px;border-radius:50%;background:#DC2626;color:#fff;font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:3px;flex-shrink:0}
 
 @media(max-width:768px){
   .ms-modal{width:calc(100% - 16px);border-radius:16px}

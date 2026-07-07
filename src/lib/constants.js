@@ -83,3 +83,13 @@ export const getDeadlineLabel = (deadline) => {
   if (diff === 1) return 'Due tomorrow';
   return `Deadline ${d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;
 };
+export const getDeadlineStatus = (deadline) => {
+  if (!deadline) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const d = new Date(deadline+'T00:00:00'); d.setHours(0,0,0,0);
+  const diff = Math.round((d - now) / (1000*60*60*24));
+  if (diff < 0) return { type:'overdue', label:`${Math.abs(diff)}d overdue`, days:diff };
+  if (diff === 0) return { type:'today', label:'Due today', days:0 };
+  if (diff <= 7) return { type:'soon', label:`${diff}d left`, days:diff };
+  return null;
+};

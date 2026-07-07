@@ -17,7 +17,7 @@ export default function usePlayground() {
   useEffect(() => {
     if (!ownerId || loaded) return;
     (async () => {
-      await supabase.auth.getSession();
+      try { await supabase.auth.getSession().catch(() => {}); } catch (e) {}
 
       const { data, error } = await supabase
         .from('pg_sheets')

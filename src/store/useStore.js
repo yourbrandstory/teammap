@@ -110,13 +110,9 @@ export const useStore = create((set, get) => ({
     try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch {}
 
     // Establish Supabase Auth session (RLS on pg_sheets requires this)
-    const authResult = await supabase.auth.signInWithPassword({ email, password });
-    if (authResult.error) {
-      const signUpResult = await supabase.auth.signUp({ email, password });
-      if (signUpResult.error) {
-        console.warn('[login] Supabase Auth setup failed:', signUpResult.error.message);
-      }
-    }
+    // Silently ignore errors — this app uses custom auth via the members table
+    try { await supabase.auth.signInWithPassword({ email, password }).catch(() => {}); } catch (e) {}
+    try { await supabase.auth.signUp({ email, password }).catch(() => {}); } catch (e) {}
 
     set({ session, role: data.role, loading: true, isAuthLoading: false });
     await get().loadAll();
@@ -137,7 +133,7 @@ export const useStore = create((set, get) => ({
             color: parsed.color || '',
           };
           set({ session, role: parsed.role, loading: true, isAuthLoading: false });
-          await supabase.auth.getSession(); // Restore Supabase Auth session from storage
+          try { await supabase.auth.getSession(); } catch (e) {} // Restore Supabase Auth session from storage
           await get().loadAll();
           return;
         }
@@ -153,21 +149,26 @@ export const useStore = create((set, get) => ({
   // ── Auth state listener (handles external sign-outs) ───────────────────────
   _authSubscription: null,
   initAuthListener: () => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        try { localStorage.removeItem(SESSION_KEY); } catch {}
-        const ch = get()._rtChannel;
-        if (ch) { supabase.removeChannel(ch); }
-        const bc = get()._bcChannel;
-        if (bc) { supabase.removeChannel(bc); }
-        get()._stopPeriodicSync();
-        set({
-          session: null, role: null,
-  S: JSON.parse(JSON.stringify(EMPTY_S)),
-          loading: false, isAuthLoading: false, _rtChannel: null, _bcChannel: null,
-        });
-      }
-    });
+    let subscription = null;
+    try {
+      const result = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') {
+          try { localStorage.removeItem(SESSION_KEY); } catch {}
+          const ch = get()._rtChannel;
+          if (ch) { supabase.removeChannel(ch); }
+          const bc = get()._bcChannel;
+          if (bc) { supabase.removeChannel(bc); }
+          get()._stopPeriodicSync();
+          set({
+            session: null, role: null,
+    S: JSON.parse(JSON.stringify(EMPTY_S)),
+            loading: false, isAuthLoading: false, _rtChannel: null, _bcChannel: null,
+          });
+        }
+      });
+      subscription = result.data.subscription;
+    } catch (e) {}
+    set({ _authSubscription: subscription });
     set({ _authSubscription: subscription });
   },
 
@@ -180,7 +181,7 @@ export const useStore = create((set, get) => ({
     const bc = get()._bcChannel;
     if (bc) { supabase.removeChannel(bc); }
     get()._stopPeriodicSync();
-    try { await supabase.auth.signOut(); } catch {}
+    try { await supabase.auth.signOut().catch(() => {}); } catch (e) {}
     set({
       session: null, role: null,
       S: JSON.parse(JSON.stringify(EMPTY_S)),

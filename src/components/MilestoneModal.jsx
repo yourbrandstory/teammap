@@ -5,6 +5,37 @@ import { CSS } from '@dnd-kit/utilities';
 import { useStore, sel } from '../store/useStore';
 import { today, uid, getDeadlineClass, getDeadlineLabel } from '../lib/constants';
 
+function getSubstepStatus(substep, allTasks) {
+  const links = substep.linkedTasks || [];
+  if (links.length === 0) return null;
+  const task = allTasks.find(t => t.id === links[0].taskId);
+  if (!task || !task.date || task.status === 'Complete' || task.deleted) return null;
+  const now = new Date();
+  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+  const taskDateStr = task.date.split('T')[0];
+  if (taskDateStr < todayStr) {
+    const d1 = new Date(taskDateStr + 'T00:00:00');
+    const d2 = new Date(todayStr + 'T00:00:00');
+    const diff = Math.round((d2 - d1) / 86400000);
+    return { type: 'overdue', label: `${diff}d late` };
+  }
+  if (taskDateStr === todayStr) return { type: 'today', label: 'today' };
+  return null;
+}
+
+function getUrgentCount(substep, allTasks) {
+  let count = 0;
+  const now = new Date();
+  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+  for (const link of (substep.linkedTasks || [])) {
+    const task = allTasks.find(t => t.id === link.taskId);
+    if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
+    const taskDateStr = task.date.split('T')[0];
+    if (taskDateStr < todayStr || taskDateStr === todayStr) count++;
+  }
+  return count;
+}
+
 const migrateSS = (ss) => {
   if (ss.linkedTaskId && !ss.linkedTaskIds && !ss.linkedTasks) {
     return {
@@ -646,6 +677,8 @@ function SortableSubstep({ ss, expanded, S, taskSensors, onToggleExpand, onToggl
     opacity: isDragging ? 0.4 : 1,
     ...(isDragging ? { boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } : {}),
   };
+  const status = getSubstepStatus(ss, S.tasks);
+  const urgentCount = getUrgentCount(ss, S.tasks);
 
   return (
     <div ref={setNodeRef} style={style} className={`ms-ss-card${isDragging ? ' dragging' : ''}`}>
@@ -657,7 +690,14 @@ function SortableSubstep({ ss, expanded, S, taskSensors, onToggleExpand, onToggl
           {ss.done ? '✓' : ''}
         </div>
         <span className={`ms-ss-title${ss.done?' done':''}`}>{ss.title || 'Untitled'}</span>
-        {ss.linkedTasks?.length > 0 && <span className="ms-ss-linked">🔗 {ss.linkedTasks.length} task{ss.linkedTasks.length > 1 ? 's' : ''}</span>}
+        {ss.linkedTasks?.length > 0 && (
+          <span className="ms-ss-linked">
+            🔗 {ss.linkedTasks.length} task{ss.linkedTasks.length > 1 ? 's' : ''}
+            {urgentCount > 0 && <span className="ss-notif-dot">{urgentCount}</span>}
+          </span>
+        )}
+        {status && status.type === 'overdue' && <span className="ss-status-dot ss-status-overdue">● {status.label}</span>}
+        {status && status.type === 'today' && <span className="ss-status-dot ss-status-today">● {status.label}</span>}
         <span className="ms-ss-expand">{expanded ? '▲' : '▼'}</span>
       </div>
       <div className={`ms-ss-card-body${expanded ? ' expanded' : ''}`}>
