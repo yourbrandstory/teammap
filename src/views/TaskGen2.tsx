@@ -41,7 +41,7 @@ export default function TaskGen2() {
   const hasAllFilters = tg2AllMulti.freqs.length || tg2AllMulti.clients.length ||
     tg2AllMulti.members.length || tg2AllMulti.moods.length;
 
-  // —— Template modal form state ——
+  // â€”â€” Template modal form state â€”â€”
   const [tmplForm, setTmplForm] = useState<any>(null);
 
   const handleOpenAddTmpl = (clientId: string, freqId: string) => {
@@ -286,7 +286,7 @@ export default function TaskGen2() {
       </div>
 
       <div className="tg2-body">
-        {/* ── PROJECT TEMPLATES ── */}
+        {/* â”€â”€ PROJECT TEMPLATES â”€â”€ */}
         {tg2Tab === 'templates' && (
           <>
             <div className="tg2-left">{sidebarContent('templates')}</div>
@@ -348,7 +348,7 @@ export default function TaskGen2() {
           </>
         )}
 
-        {/* ── ALL TEMPLATES ── */}
+        {/* â”€â”€ ALL TEMPLATES â”€â”€ */}
         {tg2Tab === 'all' && (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flex: 1 }}>
             <SavedViews
@@ -416,7 +416,7 @@ export default function TaskGen2() {
           </div>
         )}
 
-        {/* ── MILESTONE LINKS ── */}
+        {/* â”€â”€ MILESTONE LINKS â”€â”€ */}
         {tg2Tab === 'ms' && (
           <>
             <div className="tg2-left">{sidebarContent('ms')}</div>
@@ -450,7 +450,7 @@ export default function TaskGen2() {
         </div>
       )}
 
-      {/* ── Template form modal ── */}
+      {/* â”€â”€ Template form modal â”€â”€ */}
       {tmplForm && (
         <Modal onClose={() => setTmplForm(null)} large>
           <h2>{tmplForm._mode === 'edit' ? 'Edit template' : 'New template'}</h2>
@@ -461,7 +461,7 @@ export default function TaskGen2() {
             </div>
           ) : null}
           <label className="fl" style={{ marginTop: 0 }}>Template name *</label>
-          <input type="text" placeholder="e.g. Weekly report, Campaign review\u2026"
+          <input type="text" placeholder="e.g. Weekly report, Campaign review…"
             value={tmplForm.name} onChange={e => setTmplForm({ ...tmplForm, name: e.target.value })} autoFocus />
 
           <label className="fl">Mood</label>
@@ -518,17 +518,17 @@ export default function TaskGen2() {
             </div>
           </div>
 
-          {/* ── Subtasks & Links tabs ── */}
+          {/* â”€â”€ Subtasks & Links tabs â”€â”€ */}
           <div className="tdetail-tabs">
             <div className={`tdetail-tab${tmplTDetailTab === 'sub' ? ' active' : ''}`} onClick={() => setTmplTDetailTab('sub')}>
-              ☑ Subtasks {(tmplForm.subtasks || []).length ? `(${(tmplForm.subtasks || []).filter((s: any) => s.completed).length}/${(tmplForm.subtasks || []).length})` : ''}
+              â˜‘ Subtasks {(tmplForm.subtasks || []).length ? `(${(tmplForm.subtasks || []).filter((s: any) => s.completed).length}/${(tmplForm.subtasks || []).length})` : ''}
             </div>
             <div className={`tdetail-tab${tmplTDetailTab === 'links' ? ' active' : ''}`} onClick={() => setTmplTDetailTab('links')}>
-              🔗 Links {(tmplForm.links || []).length ? `(${(tmplForm.links || []).length})` : ''}
+              ðŸ”— Links {(tmplForm.links || []).length ? `(${(tmplForm.links || []).length})` : ''}
             </div>
           </div>
 
-          {/* ── Subtasks tab content ── */}
+          {/* â”€â”€ Subtasks tab content â”€â”€ */}
           <div className={`tdetail-tab-content${tmplTDetailTab === 'sub' ? ' active' : ''}`}>
             {(tmplForm.subtasks || []).length > 0 && (
               <div className="subtask-progress-mini">
@@ -544,7 +544,7 @@ export default function TaskGen2() {
               {(tmplForm.subtasks || []).map((s: any, i: number) => (
                 <div key={i} className={`subtask-row${s.completed ? ' done' : ''}`}>
                   <div className={`subtask-check${s.completed ? ' checked' : ''}`} onClick={() => toggleTmplSubtask(i)}>
-                    {s.completed ? '✓' : ''}
+                    {s.completed ? 'âœ“' : ''}
                   </div>
                   <span className="subtask-text"
                     contentEditable suppressContentEditableWarning
@@ -552,7 +552,7 @@ export default function TaskGen2() {
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}>
                     {s.text}
                   </span>
-                  <button className="subtask-del" onClick={() => delTmplSubtask(i)}>✕</button>
+                  <button className="subtask-del" onClick={() => delTmplSubtask(i)}>âœ•</button>
                 </div>
               ))}
             </div>
@@ -565,7 +565,7 @@ export default function TaskGen2() {
             </div>
           </div>
 
-          {/* ── Links tab content ── */}
+          {/* â”€â”€ Links tab content â”€â”€ */}
           <div className={`tdetail-tab-content${tmplTDetailTab === 'links' ? ' active' : ''}`}>
             <div>
               {(tmplForm.links || []).map((l: any, i: number) => {
@@ -573,9 +573,9 @@ export default function TaskGen2() {
                 if (!/^https?:\/\//i.test(safeUrl)) safeUrl = 'https://' + safeUrl;
                 return (
                   <div key={i} className="link-row">
-                    <span style={{ flexShrink: 0 }}>🔗</span>
+                    <span style={{ flexShrink: 0 }}>ðŸ”—</span>
                     <a href={safeUrl} target="_blank" rel="noopener noreferrer">{l.title || l.url}</a>
-                    <button className="link-del" onClick={() => delTmplLink(i)}>✕</button>
+                    <button className="link-del" onClick={() => delTmplLink(i)}>âœ•</button>
                   </div>
                 );
               })}
@@ -583,7 +583,7 @@ export default function TaskGen2() {
             <div className="link-add-row">
               <input type="text" placeholder="Label (optional)" value={tmplNewLinkLabel}
                 onChange={e => setTmplNewLinkLabel(e.target.value)} style={{ width: 140, fontSize: 12 }} />
-              <input type="text" placeholder="https://\u2026" value={tmplNewLinkUrl}
+              <input type="text" placeholder="https://…" value={tmplNewLinkUrl}
                 onChange={e => setTmplNewLinkUrl(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTmplLink(); } }}
                 style={{ flex: 1, fontSize: 12 }} />
@@ -624,7 +624,7 @@ export default function TaskGen2() {
         </Modal>
       )}
 
-      {/* ── Save view modal ── */}
+      {/* â”€â”€ Save view modal â”€â”€ */}
       {saveViewModal && (
         <Modal onClose={() => setSaveViewModal(false)}>
           <h2>Save view</h2>
@@ -643,7 +643,7 @@ export default function TaskGen2() {
         </Modal>
       )}
 
-      {/* ── Milestone modal ── */}
+      {/* â”€â”€ Milestone modal â”€â”€ */}
       {msModal && (
         <Modal onClose={() => setMsModal(null)}>
           <h2>{msModal._mode === 'edit' ? 'Edit Milestone' : 'New Milestone'}</h2>
@@ -653,6 +653,10 @@ export default function TaskGen2() {
           <label className="fl">Description</label>
           <textarea placeholder="What does this milestone represent?"
             value={msModal.description || ''} onChange={e => setMsModal({ ...msModal, description: e.target.value })} />
+          <label className="fl">Notes</label>
+          <textarea placeholder="Add any notes about this milestoneâ€¦" value={msModal.notes || ''}
+            onChange={e => setMsModal({ ...msModal, notes: e.target.value })}
+            style={{resize:'vertical',minHeight:60}} />
           <label className="fl">Assign to</label>
           <div className="ttag-row horizontal-scroll">
             {S.members.map((m: any) => {
@@ -678,6 +682,7 @@ export default function TaskGen2() {
                 ...(msModal._id ? { id: msModal._id } : {}),
                 name: msModal.name.trim(),
                 description: msModal.description || '',
+                notes: msModal.notes || '',
                 assignedTo: msModal.assignedTo || [],
                 color: S.moods[0]?.color || '#7c3aed',
               });
@@ -687,7 +692,7 @@ export default function TaskGen2() {
         </Modal>
       )}
 
-      {/* ── TaskModal (for creating tasks from "+ Add task" in milestone links) ── */}
+      {/* â”€â”€ TaskModal (for creating tasks from "+ Add task" in milestone links) â”€â”€ */}
       {taskModal && (
         <TaskModal
           task={taskModal}

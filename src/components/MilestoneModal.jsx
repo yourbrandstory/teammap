@@ -76,7 +76,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     displayDays: milestone.displayDays || [],
   } : {
     id: null, title: '', mood: '', assignedTo: [], clientId: '', date: today(), deadline: '',
-    substeps: [], displayMode: 'daily', displayDays: [],
+    substeps: [], displayMode: 'daily', displayDays: [], notes: '',
   });
   const [tab, setTab] = useState(0);
   const [expandedSS, setExpandedSS] = useState({});
@@ -136,6 +136,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       (milestone.title || '').trim(), milestone.mood || '', [...(milestone.assignedTo || [])].sort(),
       milestone.clientId || '', milestone.date || '', milestone.deadline || '',
       JSON.stringify(milestone.substeps || []), milestone.displayMode || 'daily', [...(milestone.displayDays || [])].sort(),
+      milestone.notes || '',
     ]);
   }
 
@@ -148,6 +149,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       clientId: m.clientId || '', date: m.date, deadline: m.deadline || '',
       substeps: (m.substeps || []).map(s => ({ ...s })),
       displayMode: m.displayMode, displayDays: [...(m.displayDays || [])],
+      notes: m.notes || '',
     };
   });
 
@@ -165,6 +167,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
         f.title.trim(), f.mood || '', [...f.assignedTo].sort(),
         f.clientId || '', f.date || '', f.deadline || '',
         JSON.stringify(substepsToSave), f.displayMode || 'daily', [...f.displayDays].sort(),
+        f.notes || '',
       ]);
       if (snapshot === lastSnapshot.current && currentId && !overrideSubsteps) return null;
 
@@ -176,6 +179,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
         clientId: f.clientId || null, date: f.date || '', deadline: f.deadline || null,
         substeps: substepsToSave,
         displayMode: f.displayMode || 'daily', displayDays: [...f.displayDays],
+        notes: f.notes || '',
       };
       payload.deleted = false;
 
@@ -526,6 +530,13 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
 
           {/* ── SLIDE 1: Substeps ── */}
           <div className={`modal-section${tab===1?' active':''}`} style={{position:'relative'}}>
+            <label className="fl">Notes</label>
+            <textarea placeholder="Add any notes about this milestone…" value={m.notes || ''}
+              onChange={e=>updateField('notes',e.target.value)}
+              style={{width:'100%',fontSize:14,padding:'9px 12px',border:'1.5px solid var(--border)',borderRadius:'var(--r)',outline:'none',fontFamily:'inherit',background:'var(--surface)',color:'var(--text)',resize:'vertical',minHeight:70,marginBottom:12}}
+              onFocus={e=>e.target.style.borderColor='var(--accent)'}
+              onBlur={e=>e.target.style.borderColor='var(--border)'} />
+
             {subTotal > 0 && (
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
                 <div style={{flex:1,height:5,background:'var(--s3)',borderRadius:3,overflow:'hidden'}}>

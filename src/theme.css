@@ -314,7 +314,7 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--ac
 .ms-modal .ms-assign-chip:hover{border-color:var(--accent)}
 .ms-modal .ms-assign-chip.on{background:var(--al);border-color:var(--accent);color:var(--accent);font-weight:700}
 .ms-modal .ms-client-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-.ms-modal .ms-client-chip{padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);font-size:11px;cursor:pointer;font-family:inherit;background:var(--s2);transition:.15s;font-weight:500}
+.ms-modal .ms-client-chip{display:inline-flex;align-items:center;height:28px;box-sizing:border-box;padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);font-size:11px;cursor:pointer;font-family:inherit;background:var(--s2);transition:.15s;font-weight:500}
 .ms-modal .ms-client-chip:hover{border-color:var(--accent)}
 .ms-modal .ms-client-chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .ms-modal .ms-date-row{display:flex;align-items:center;gap:8px}

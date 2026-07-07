@@ -94,7 +94,7 @@ export default function TemplateCard({ template, S, compact, createConfirm, onCr
         ))}
         {getNotesText(template.notes) ? (
           <span style={{ fontSize: 11, color: 'var(--t2)', fontStyle: 'italic' }}>
-            &ldquo;{getNotesText(template.notes).slice(0, 40)}{getNotesText(template.notes).length > 40 ? '\u2026' : ''}&rdquo;
+            &ldquo;{getNotesText(template.notes).slice(0, 40)}{getNotesText(template.notes).length > 40 ? '…' : ''}&rdquo;
           </span>
         ) : null}
       </div>

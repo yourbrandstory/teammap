@@ -499,7 +499,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
           className={err.name?'req':''} onChange={e=>setName(e.target.value)} />
 
         <label className="fl" style={{marginTop:10}}>Notes</label>
-        <textarea placeholder="Add any notes about this task\u2026" value={notes}
+        <textarea placeholder="Add any notes about this task…" value={notes}
           onChange={e=>setNotes(e.target.value)}
           style={{width:'100%',minHeight:60,padding:'9px 12px',fontSize:13,fontFamily:'inherit',
             border:'1.5px solid var(--border)',borderRadius:'var(--r)',outline:'none',
