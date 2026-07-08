@@ -30,14 +30,22 @@ export function filterDashboardTasks(tasks, milestones) {
   return tasks.filter(t => !isTaskHiddenBySubstep(t.id, milestones));
 }
 
-export function getTaskMilestoneLink(taskId, milestones) {
-  if (!taskId || !milestones) return null;
+/** Return all milestone-substep links for a task (many-to-many). */
+export function getTaskMilestoneLinks(taskId, milestones) {
+  if (!taskId || !milestones) return [];
+  const results = [];
   for (const ms of milestones) {
     if (ms.deleted) continue;
     for (const ss of (ms.substeps || [])) {
       const link = (ss.linkedTasks || []).find(lt => lt.taskId === taskId);
-      if (link) return { milestone: ms, substep: ss, link };
+      if (link) results.push({ milestone: ms, substep: ss, link });
     }
   }
-  return null;
+  return results;
+}
+
+/** @deprecated Use getTaskMilestoneLinks (plural) which returns an array. Kept for backward compat. */
+export function getTaskMilestoneLink(taskId, milestones) {
+  const links = getTaskMilestoneLinks(taskId, milestones);
+  return links.length > 0 ? links[0] : null;
 }

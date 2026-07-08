@@ -4,7 +4,7 @@ import { useUIStore } from '../store/useUIStore';
 import { today, fmtD, taskTimeStr, getDeadlineClass, getDeadlineLabel, getDeadlineStatus } from '../lib/constants';
 import { getStatusMaps, getCompleteStatus, getStandUpStatus, getReviewStatus, getPassStatus } from '../utils/statusUtils';
 import { getNotesText } from '../utils/notesUtils';
-import { getTaskMilestoneLink } from '../utils/milestoneHelpers';
+import { getTaskMilestoneLinks } from '../utils/milestoneHelpers';
 import Avatar from '../components/Avatar';
 import TaskModal from '../components/TaskModal';
 import StatusPopup from '../components/StatusPopup';
@@ -609,7 +609,7 @@ const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStat
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
   const subDone = task.subtasks?.filter(s => s.done).length || 0;
-  const msLink = useMemo(() => getTaskMilestoneLink(task.id, milestones), [task.id, milestones]);
+  const msLinks = useMemo(() => getTaskMilestoneLinks(task.id, milestones), [task.id, milestones]);
 
   return (
     <div className={`tcard${extra}`} onClick={()=>onOpenTask(task)}>
@@ -624,7 +624,12 @@ const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStat
         </span>
         {timeStr && <span className="ttime">{timeStr}</span>}
       </div>
-      {msLink && <div className="task-ms-badge"><i>◆</i> <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
+      {msLinks.length > 0 && msLinks.map((msLink, idx) => (
+        <div key={msLink.milestone.id+'_'+idx} className="task-ms-badge" style={idx > 0 ? {marginTop: 2} : {}}>
+          <i>◆</i> <span className="ms-m-letter">M</span>
+          {msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}
+        </div>
+      ))}
       {task.tags?.length>0 && (
         <div style={{display:'flex',gap:3,flexWrap:'wrap',marginTop:3}}>
           {task.tags.map(tid => { const tg = tags.find(t=>t.id===tid); return tg ? <span key={tid} className="ttag-chip">{tg.label}</span> : null; })}
@@ -958,7 +963,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clien
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
   const subDone = task.subtasks?.filter(s => s.done).length || 0;
-  const msLink = useMemo(() => getTaskMilestoneLink(task.id, milestones), [task.id, milestones]);
+  const msLinks = useMemo(() => getTaskMilestoneLinks(task.id, milestones), [task.id, milestones]);
 
   return (
     <div className="td-mob-card" onClick={() => onOpenTask(task)}>
@@ -973,7 +978,12 @@ const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clien
           {timeStr && <span className="ttime" style={{fontSize:10}}>{timeStr}</span>}
         </div>
       </div>
-      {msLink && <div className="task-ms-badge"><i>◆</i> <span className="ms-m-letter">M</span>{msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}</div>}
+      {msLinks.length > 0 && msLinks.map((msLink, idx) => (
+        <div key={msLink.milestone.id+'_'+idx} className="task-ms-badge" style={idx > 0 ? {marginTop: 2} : {}}>
+          <i>◆</i> <span className="ms-m-letter">M</span>
+          {msLink.milestone.title.length > 20 ? msLink.milestone.title.slice(0, 20) + '…' : msLink.milestone.title}
+        </div>
+      ))}
       {task.tags?.length > 0 || task.assignedTo?.length > 1 ? (
         <button className="td-mob-card-expand" onClick={(e)=>{e.stopPropagation();onToggleExpand(task.id);}}>
           {expanded ? '▲' : '···'}

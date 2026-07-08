@@ -9,15 +9,19 @@ interface Props {
   onDelete: (taskId: string) => void;
 }
 
-function getTaskMilestone(taskId: string, milestones: any[]) {
-  if (!taskId || !milestones) return null;
+function getTaskMilestones(taskId: string, milestones: any[]) {
+  if (!taskId || !milestones) return [];
+  const results: any[] = [];
   for (const ms of milestones) {
     if (ms.deleted) continue;
     for (const ss of (ms.substeps || [])) {
-      if ((ss.linkedTasks || []).some((lt: any) => lt.taskId === taskId)) return ms;
+      if ((ss.linkedTasks || []).some((lt: any) => lt.taskId === taskId)) {
+        results.push(ms);
+        break;
+      }
     }
   }
-  return null;
+  return results;
 }
 
 export default function TaskRow({ task, S, onOpen, onDelete }: Props) {
@@ -29,7 +33,7 @@ export default function TaskRow({ task, S, onOpen, onDelete }: Props) {
   const taskTags = (task.tags || [])
     .map((tid: string) => { const tg = sel.gtag(S, tid); return tg ? tg.label : ''; })
     .filter(Boolean);
-  const ms = getTaskMilestone(task.id, S.milestones);
+  const msList = getTaskMilestones(task.id, S.milestones);
   const timeStr = taskTimeStr(task);
   const { STC, STB } = getStatusMaps(S.task_statuses);
 
@@ -85,7 +89,21 @@ export default function TaskRow({ task, S, onOpen, onDelete }: Props) {
           : <span style={{ color: 'var(--t3)' }}>&mdash;</span>}
       </td>
       <td style={{ fontSize: 11, color: 'var(--t2)' }}>
-        {ms ? ms.title : <span style={{ color: 'var(--t3)' }}>&mdash;</span>}
+        {msList.length > 0 ? (
+          <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {msList.map(ms => (
+              <span key={ms.id} style={{
+                display: 'inline-block', padding: '1px 6px', borderRadius: 10,
+                fontSize: 10, background: 'var(--s3)', fontWeight: 600,
+                whiteSpace: 'nowrap', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis',
+              }} title={ms.title}>
+                ◆ {ms.title}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span style={{ color: 'var(--t3)' }}>&mdash;</span>
+        )}
       </td>
       <td onClick={(e) => e.stopPropagation()}>
         <button className="btn btn-xs btn-d" onClick={() => onDelete(task.id)}>&#128465;</button>

@@ -115,15 +115,18 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const [tab, setTab] = useState('essentials');
   const hasDetailContent = isEdit && (task.notes || (task.tags?.length > 0) || (task.subtasks?.length > 0) || (task.links?.length > 0));
 
-  const linkedMilestone = useMemo(() => {
+  const linkedMilestones = useMemo(() => {
     const tid = task.id || taskIdRef.current;
-    if (!tid) return null;
+    if (!tid) return [];
+    const results = [];
     for (const ms of S.milestones) {
       for (const ss of (ms.substeps || [])) {
-        if ((ss.linkedTasks || []).some(lt => lt.taskId === tid)) return { milestone: ms, substep: ss };
+        if ((ss.linkedTasks || []).some(lt => lt.taskId === tid)) {
+          results.push({ milestone: ms, substep: ss });
+        }
       }
     }
-    return null;
+    return results;
   }, [task.id, S.milestones]);
 
   const filteredMilestones = useMemo(() => {
@@ -443,10 +446,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   };
 
   const handleOpenPicker = () => {
-    if (linkedMilestone) {
-      setLinkMsId(linkedMilestone.milestone.id);
-      setLinkSsId(linkedMilestone.substep.id);
-    }
+    setLinkMsId('');
+    setLinkSsId('');
     setShowMsPicker(true);
   };
 
@@ -456,20 +457,19 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     setShowMsPicker(false);
   };
 
-  const handleUnlinkTask = async () => {
-    if (!linkedMilestone) return;
+  const handleUnlinkTask = async (msId, ssId) => {
     const tid = task.id || taskIdRef.current;
-    if (!tid) return;
-    const { milestone, substep } = linkedMilestone;
+    if (!tid || !msId || !ssId) return;
+    const ms = S.milestones.find(m => m.id === msId);
+    if (!ms) return;
     const updated = {
-      ...milestone,
-      substeps: milestone.substeps.map(s => s.id === substep.id ? {
+      ...ms,
+      substeps: ms.substeps.map(s => s.id === ssId ? {
         ...s,
         linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== tid)
       } : s)
     };
     await upsertMilestone(updated);
-    setShowMsPicker(false);
   };
 
   const del = async () => {
@@ -513,7 +513,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
           </button>
           <button className={`modal-section-tab${tab==='s3'?' active':''}`} onClick={()=>setTab('s3')}>
             Section 3 &mdash; More
-            {linkedMilestone && <span className="s3-count-badge">1</span>}
+            {linkedMilestones.length > 0 && <span className="s3-count-badge">{linkedMilestones.length}</span>}
           </button>
         </div>
 
@@ -809,30 +809,44 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                     </>
                   )}
                 </div>
-              ) : linkedMilestone ? (
-                <div className="ms-card">
-                  <div className="ms-card-row">
-                    <div className="ms-card-icon-sq"><i>◆</i></div>
-                    <span className="ms-card-tag">◆ MILESTONE</span>
-                    <span className="ms-card-title">{linkedMilestone.milestone.title}</span>
-                  </div>
-                  <div className="ms-card-divider" />
-                  <div className="ms-card-row">
-                    <div className="ms-card-icon-sq ms-card-icon-grey"><i>⊞</i></div>
-                    <span className="ms-card-sub-label">SUBSTEP</span>
-                    <span className="ms-card-sub-name">{linkedMilestone.substep.title}</span>
-                  </div>
-                  <div className="ms-card-actions">
-                    {onOpenMilestone && (
-                      <button className="ms-card-btn" onClick={() => onOpenMilestone(linkedMilestone.milestone)}>
-                        <i>✎</i> Edit milestone
-                      </button>
-                    )}
-                    <button className="ms-card-btn ms-card-btn-unlink" onClick={handleUnlinkTask}>
-                      <i>⊘</i> Unlink
-                    </button>
-                  </div>
-                </div>
+              ) : linkedMilestones.length > 0 ? (
+                <>
+                  {linkedMilestones.map(link => {
+                    const total = (link.milestone.substeps||[]).length;
+                    const done = (link.milestone.substeps||[]).filter(s => s.done).length;
+                    return (
+                      <div key={link.milestone.id+'_'+link.substep.id} className="ms-card">
+                        <div className="ms-card-row">
+                          <div className="ms-card-icon-sq"><i>◆</i></div>
+                          <span className="ms-card-tag">◆ MILESTONE</span>
+                          <span className="ms-card-title">{link.milestone.title}</span>
+                        </div>
+                        <div className="ms-card-divider" />
+                        <div className="ms-card-row">
+                          <div className="ms-card-icon-sq ms-card-icon-grey"><i>⊞</i></div>
+                          <span className="ms-card-sub-label">SUBSTEP</span>
+                          <span className="ms-card-sub-name">{link.substep.title}</span>
+                        </div>
+                        <div className="ms-card-row" style={{marginTop:4}}>
+                          <span style={{fontSize:10,color:'var(--t2)',fontWeight:600}}>Progress: {done}/{total}</span>
+                        </div>
+                        <div className="ms-card-actions">
+                          {onOpenMilestone && (
+                            <button className="ms-card-btn" onClick={() => onOpenMilestone(link.milestone)}>
+                              <i>✎</i> Edit milestone
+                            </button>
+                          )}
+                          <button className="ms-card-btn ms-card-btn-unlink" onClick={() => handleUnlinkTask(link.milestone.id, link.substep.id)}>
+                            <i>⊘</i> Unlink
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <button className="ms-empty-btn" onClick={handleOpenPicker} style={{marginTop:8}}>
+                    <i>+</i> Add another milestone
+                  </button>
+                </>
               ) : (
                 <div className="ms-empty">
                   <div style={{fontSize:28,color:'var(--t3)',lineHeight:1}}><i>◆</i></div>
