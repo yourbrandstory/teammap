@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useStore, sel } from '../store/useStore';
 import { MOOD_PASTEL } from '../lib/constants';
 import { getNotesText } from '../utils/notesUtils';
+import { getStatusMaps } from '../utils/statusUtils';
 import TaskModal from '../components/TaskModal';
 
 const TODAY = new Date();
@@ -152,6 +153,8 @@ export default function SMCalendar() {
     });
   }, [view, smTasks, year, month]);
 
+  const { STC, STB } = useMemo(() => getStatusMaps(S.task_statuses), [S.task_statuses]);
+
   const moodPastel = useCallback((moodId) => {
     if (!moodId) return null;
     const m = S.moods.find(x => x.id === moodId);
@@ -301,9 +304,10 @@ export default function SMCalendar() {
                             const hasIcons = hasLinks || hasSubtasks || hasNotes;
                             return (
                               <div key={t.id} className="task" style={{ borderLeftColor: moodColor }} onClick={() => openTask(t)}>
-                                <div className="task-top">
-                                  {theMood && <span className="mood-tag" style={{ background: p?.bg || 'var(--s2)', color: moodColor }}>{theMood.icon} {theMood.label}</span>}
-                                  <span className="task-name">{t.name}</span>
+                                 <div className="task-top">
+                                   {theMood && <span className="mood-tag" style={{ background: p?.bg || 'var(--s2)', color: moodColor }}>{theMood.icon} {theMood.label}</span>}
+                                   {t.status && <span className="sc-status-tag" style={{ background: STB[t.status], color: STC[t.status] }}>{t.status}</span>}
+                                   <span className="task-name">{t.name}</span>
                                 </div>
                                 {(t.assignedTo?.length > 0 || client) && (
                                   <div className="task-meta">
@@ -374,11 +378,12 @@ export default function SMCalendar() {
               const CIRC = 2 * Math.PI * 13;
               const hasIcons = hasLinks || hasSubtasks || hasNotes;
               return (
-                <div key={t.id} className="smc-today-card" style={{borderLeft:`3px solid ${moodColor}`}} onClick={() => openTask(t)}>
-                  <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:3}}>
-                    {theMood && <span className="mood-tag" style={{background:p?.bg||'var(--s2)',color:moodColor}}>{theMood.icon} {theMood.label}</span>}
-                    <span className="smc-today-time" style={{marginBottom:0}}>{timeLabel}</span>
-                  </div>
+                 <div key={t.id} className="smc-today-card" style={{borderLeft:`3px solid ${moodColor}`}} onClick={() => openTask(t)}>
+                   <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:3}}>
+                     {theMood && <span className="mood-tag" style={{background:p?.bg||'var(--s2)',color:moodColor}}>{theMood.icon} {theMood.label}</span>}
+                     {t.status && <span className="sc-status-tag" style={{ background: STB[t.status], color: STC[t.status] }}>{t.status}</span>}
+                     <span className="smc-today-time" style={{marginBottom:0}}>{timeLabel}</span>
+                   </div>
                   <div className="smc-today-name">{t.name}</div>
                   <div className="smc-today-meta">
                     {t.postingDate && <span className="pd-capsule" title={t.postingDate}>📅 {fmtDate(t.postingDate)}</span>}

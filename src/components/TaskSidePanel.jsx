@@ -1,5 +1,5 @@
 import { useState, useMemo, memo } from 'react';
-import { sel } from '../store/useStore';
+import { sel, useStore } from '../store/useStore';
 import { useUIStore } from '../store/useUIStore';
 import { today, taskTimeStr, fmtTime } from '../lib/constants';
 import { getStatusMaps, getCompleteStatus } from '../utils/statusUtils';
@@ -32,14 +32,31 @@ export default memo(function TaskSidePanel({ tasks, member, S, onOpenTask, hidde
     });
   }, [moods, S.tasks.length, S.tasks, member, completeStatus]);
 
+  const session = useStore(s => s.session);
+  const [routineFilter, setRoutineFilter] = useState('all');
+
+  const routineMembers = useMemo(() => {
+    return S.members || [];
+  }, [S.members]);
+
+  const ROUTINE_MOOD_ORDER = ['top', 'hero', 'imp', 'creative', 'secondhalf', 'followup', 'rapid', 'share'];
+
   const routineTemplates = useMemo(() => {
     const dayIds = getDayFreqTagIds(S.freqTags || []);
     if (!dayIds.length) return [];
+    const moodOrder = {};
+    ROUTINE_MOOD_ORDER.forEach((id, i) => moodOrder[id] = i);
     return (S.templates || []).filter(t => {
       const ids = t.freqIds || (t.freqId ? [t.freqId] : []);
-      return ids.some(fid => dayIds.includes(fid));
+      if (!ids.some(fid => dayIds.includes(fid))) return false;
+      if (routineFilter === 'all') return true;
+      return (t.assignedTo || []).includes(routineFilter);
+    }).sort((a, b) => {
+      const ma = moodOrder[a.mood] ?? 99;
+      const mb = moodOrder[b.mood] ?? 99;
+      return ma - mb;
     });
-  }, [S.templates, S.freqTags]);
+  }, [S.templates, S.freqTags, routineFilter]);
 
   const handleOpenRoutine = (tmpl) => {
     onOpenTask({
@@ -85,6 +102,13 @@ export default memo(function TaskSidePanel({ tasks, member, S, onOpenTask, hidde
       <div className="spb" style={{ flex: 1, overflowY: 'auto', padding: '6px 8px 10px' }}>
         {spTab === 'routines' ? (
           <>
+            <select value={routineFilter} onChange={e => setRoutineFilter(e.target.value)}
+              style={{ width: '100%', marginBottom: 6, fontSize: 11, padding: '3px 6px', fontFamily: 'inherit', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}>
+              <option value="all">All</option>
+              {routineMembers.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
             {!routineTemplates.length ? (
               <div style={{ fontSize: 10, color: 'var(--t3)', padding: '8px 2px', fontStyle: 'italic' }}>
                 No routines for today

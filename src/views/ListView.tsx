@@ -4,11 +4,15 @@ import ListToolbar from '../components/listview/ListToolbar';
 import TaskTable from '../components/listview/TaskTable';
 import TaskModal from '../components/TaskModal';
 
-export default function ListView() {
+interface Props {
+  memberFilter?: string;
+}
+
+export default function ListView({ memberFilter }: Props) {
   const {
     S, tasks, lvSort, lvFilters, taskModal, activeCount, totalCount,
     setFilter, clearFilters, toggleHideCompleted, sortBy, setSort, openTask, setTaskModal, deleteTask,
-  } = useListView();
+  } = useListView(memberFilter);
 
   return (
     <div className="lv-wrap">

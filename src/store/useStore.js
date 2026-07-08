@@ -59,7 +59,7 @@ const clientToRow   = (c) => ({ id:c.id, name:c.name, industry:c.industry||'', c
 const linkFromRow   = (r) => ({ id:r.id, memberId:r.member_id, clientId:r.client_id, roles:r.roles||[] });
 const linkToRow     = (l) => ({ id:l.id, member_id:l.memberId, client_id:l.clientId, roles:l.roles||[] });
 const msFromRow     = (r) => ({ id:r.id, title:r.title||r.name||'', mood:r.mood||r.color||'', assignedTo:r.assigned_to||[], clientId:r.client_id||'', date:r.date||'', deadline:r.deadline||'', substeps:r.substeps||[], displayMode:r.display_mode||'daily', displayDays:r.display_days||[], deleted:!!r.deleted, createdAt:Number(r.created_at)||Date.now(), updatedAt:Number(r.updated_at)||Date.now() });
-const msToRow       = (m) => ({ id:m.id, name:m.title||m.name||'', title:m.title||'', mood:m.mood||'', assigned_to:m.assignedTo||[], client_id:m.clientId||null, date:m.date||'', deadline:m.deadline||null, substeps:m.substeps||[], display_mode:m.displayMode||'daily', display_days:m.displayDays||[], deleted:!!m.deleted, notes:m.notes||'', description:m.description||'', color:m.mood||m.color||'', created_at:m.createdAt||Date.now(), updated_at:m.updatedAt||Date.now() });
+const msToRow       = (m) => ({ id:m.id, name:m.title||m.name||'', title:m.title||'', mood:m.mood||'', assigned_to:m.assignedTo||[], client_id:m.clientId||null, date:m.date||'', deadline:m.deadline||null, substeps:m.substeps||[], display_mode:m.displayMode||'daily', display_days:m.displayDays||[], deleted:!!m.deleted, description:m.description||'', color:m.mood||m.color||'', created_at:m.createdAt||Date.now(), updated_at:m.updatedAt||Date.now() });
 const tagFromRow    = (r) => ({ id:r.id, label:r.label, color:r.color });
 const tagToRow      = (t) => ({ id:t.id, label:t.label, color:t.color });
 
@@ -69,6 +69,7 @@ const STATE_KEYS = ['settings','moods','navOrder','navLabels','freqTags','templa
 const EMPTY_S = {
   members:[], clients:[], links:[], tasks:[], milestones:[], tags:[],
   lineUp: {},
+  lineUpItemOrder: {},
   moods: JSON.parse(JSON.stringify(DMOODS)),
   settings:{ maxCap:6, weekends:false, spMember:null },
   navOrder:[...DEFAULT_NAV_ORDER], navLabels:{...DEFAULT_NAV_LABELS},
@@ -265,6 +266,10 @@ export const useStore = create((set, get) => ({
     (lineUpRows.data||[]).forEach(r => {
       if (!S.lineUp[r.member_id]) S.lineUp[r.member_id] = {};
       S.lineUp[r.member_id][r.date] = r.task_order || [];
+      if (r.item_order) {
+        if (!S.lineUpItemOrder[r.member_id]) S.lineUpItemOrder[r.member_id] = {};
+        S.lineUpItemOrder[r.member_id][r.date] = r.item_order;
+      }
     });
     if (S.lineUpOrder && Object.keys(S.lineUpOrder).length && !S.lineUp.__global__) {
       S.lineUp.__global__ = { ...S.lineUpOrder };
@@ -761,17 +766,32 @@ export const useStore = create((set, get) => ({
     console.log('[upsertMilestone] payload:', JSON.stringify(row, null, 2));
     let { error } = await supabase.from('milestones').upsert(row).select();
     if (error && (error.code === '42703' || /column .+ does not exist/i.test(error.message))) {
-      console.warn('[upsertMilestone] new-schema columns missing, falling back to old schema');
-      const oldRow = { id:m.id, name:m.title||m.name||'', description:m.description||'', assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
-      console.log('[upsertMilestone] fallback payload:', JSON.stringify(oldRow, null, 2));
-      const fb = await supabase.from('milestones').upsert(oldRow).select();
-      error = fb.error;
-      if (fb.error) {
-        console.error('[upsertMilestone] fallback error.code:', fb.error.code);
-        console.error('[upsertMilestone] fallback error.message:', fb.error.message);
-        console.error('[upsertMilestone] fallback error.details:', fb.error.details);
+      const colMatch = error.message.match(/column "([^"]+)"/);
+      const badCol = colMatch?.[1];
+      if (badCol && row[badCol] !== undefined) {
+        console.warn('[upsertMilestone] column "'+badCol+'" missing, retrying without it');
+        const { [badCol]: _, ...rest } = row;
+        const retry = await supabase.from('milestones').upsert(rest).select();
+        error = retry.error;
+        if (!retry.error) {
+          console.log('[upsertMilestone] saved without column "'+badCol+'"');
+        } else if (retry.error.code === '42703' || /column .+ does not exist/i.test(retry.error.message)) {
+          console.warn('[upsertMilestone] multiple columns missing, falling back to old schema');
+          const oldRow = { id:m.id, name:m.title||m.name||'', description:m.description||'', assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
+          const fb = await supabase.from('milestones').upsert(oldRow).select();
+          error = fb.error;
+          if (!fb.error) {
+            console.log('[upsertMilestone] saved with old schema (title/substeps not persisted until migration runs)');
+          }
+        }
       } else {
-        console.log('[upsertMilestone] saved with old schema (title/substeps not persisted until migration runs)');
+        console.warn('[upsertMilestone] new-schema columns missing, falling back to old schema');
+        const oldRow = { id:m.id, name:m.title||m.name||'', description:m.description||'', assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
+        const fb = await supabase.from('milestones').upsert(oldRow).select();
+        error = fb.error;
+        if (!fb.error) {
+          console.log('[upsertMilestone] saved with old schema (title/substeps not persisted until migration runs)');
+        }
       }
     } else if (error) {
       console.error('[upsertMilestone] error.code:', error.code);
@@ -841,21 +861,29 @@ export const useStore = create((set, get) => ({
   setStateKey: async (key, value) => { get()._patchS((S)=>{ S[key]=value; }); await get()._persistState(key); },
 
   // ── LINE UP (per-member, persisted to line_up table, realtime) ─────────────
-  saveLineUp: async (memberId, date, taskOrder) => {
+  saveLineUp: async (memberId, date, taskOrder, itemOrder) => {
     const now = Date.now();
     set((s) => {
-      const S = { ...s.S, lineUp: { ...s.S.lineUp } };
+      const S = { ...s.S, lineUp: { ...s.S.lineUp }, lineUpItemOrder: { ...s.S.lineUpItemOrder } };
       if (!S.lineUp[memberId]) S.lineUp[memberId] = {};
       S.lineUp[memberId] = { ...S.lineUp[memberId], [date]: taskOrder };
+      if (itemOrder) {
+        if (!S.lineUpItemOrder[memberId]) S.lineUpItemOrder[memberId] = {};
+        S.lineUpItemOrder[memberId] = { ...S.lineUpItemOrder[memberId], [date]: itemOrder };
+      }
       // Keep legacy lineUpOrder in sync for components that still read it
       if (memberId === '__global__') {
         S.lineUpOrder = { ...s.S.lineUpOrder, [date]: taskOrder };
+      } else if (itemOrder && memberId === '__global__') {
+        S.lineUpOrder = { ...s.S.lineUpOrder, [date]: itemOrder };
       }
       return { ...s, S };
     });
     get().flashSaved();
+    const upsertData = { member_id: memberId, date, task_order: taskOrder, updated_at: now };
+    if (itemOrder) upsertData.item_order = itemOrder;
     const { error } = await supabase.from('line_up').upsert(
-      { member_id: memberId, date, task_order: taskOrder, updated_at: now },
+      upsertData,
       { onConflict: 'member_id,date' }
     );
     if (error) console.error('[saveLineUp] error:', error);
@@ -885,7 +913,11 @@ export const useStore = create((set, get) => ({
     if (S.lineUp) {
       for (const memberId of Object.keys(S.lineUp)) {
         for (const date of Object.keys(S.lineUp[memberId] || {})) {
-          lineUpRows.push({ member_id: memberId, date, task_order: S.lineUp[memberId][date] });
+          const row = { member_id: memberId, date, task_order: S.lineUp[memberId][date] };
+          if (S.lineUpItemOrder?.[memberId]?.[date]) {
+            row.item_order = S.lineUpItemOrder[memberId][date];
+          }
+          lineUpRows.push(row);
         }
       }
     }

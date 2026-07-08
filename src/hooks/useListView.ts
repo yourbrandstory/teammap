@@ -4,14 +4,17 @@ import { useUIStore } from '../store/useUIStore';
 import type { LVFilters, LVSort } from '../utils/listViewHelpers';
 import { filterAndSortTasks, toggleSort, DEFAULT_FILTERS, DEFAULT_SORT } from '../utils/listViewHelpers';
 
-export default function useListView() {
+export default function useListView(memberFilter?: string) {
   const S = useStore(s => s.S);
   const softDeleteTask = useStore(s => s.softDeleteTask);
   const uiViewState = useUIStore(s => s.viewStates.lv || {});
   const setViewState = useUIStore(s => s.setViewState);
 
   const [lvSort, setLvSort] = useState<LVSort>(uiViewState.lvSort || DEFAULT_SORT);
-  const [lvFilters, setLvFilters] = useState<LVFilters>(uiViewState.lvFilters || DEFAULT_FILTERS);
+  const [lvFilters, setLvFilters] = useState<LVFilters>({
+    ...(uiViewState.lvFilters || DEFAULT_FILTERS),
+    ...(memberFilter ? { member: memberFilter } : {}),
+  });
   const [taskModal, setTaskModal] = useState<any>(null);
 
   useEffect(() => {
@@ -37,15 +40,16 @@ export default function useListView() {
   );
 
   const setFilter = useCallback((key: string, value: string) => {
+    if (key === 'member' && memberFilter) return;
     setLvFilters(prev => ({ ...prev, [key]: value }));
-  }, []);
+  }, [memberFilter]);
 
   const clearFilters = useCallback(() => {
     setLvFilters(prev => ({
-      search: '', dateRange: 'all', member: '', client: '', mood: '', status: '', tag: '',
+      search: '', dateRange: 'all', member: memberFilter || '', client: '', mood: '', status: '', tag: '',
       hideCompleted: prev.hideCompleted,
     }));
-  }, []);
+  }, [memberFilter]);
 
   const toggleHideCompleted = useCallback(() => {
     setLvFilters(prev => ({ ...prev, hideCompleted: !prev.hideCompleted }));

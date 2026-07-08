@@ -7,6 +7,7 @@ import { useStore, sel } from '../store/useStore';
 import { getStatusMaps, getDefaultStatus, getCompleteStatus, getPassStatus, getStatusesForRole, canDeleteTask } from '../utils/statusUtils';
 import { validateTaskCreation, getMoodLimit } from '../utils/taskLimits';
 import Avatar from './Avatar';
+import NotesField from './NotesField';
 
 const DRAFT_KEY = 'tm_task_draft';
 
@@ -247,6 +248,11 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
   const tryCloseModal = useCallback(() => {
     if (limitError) return;
+    if (showMsPicker) {
+      setNudgeMsg('Please select a milestone substep before closing.');
+      setTimeout(() => setNudgeMsg(''), 3000);
+      return;
+    }
     const hasName = name.trim().length > 0;
     const hasMood = !!mood;
     const hasAssignee = assigned.length > 0;
@@ -259,7 +265,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     } else {
       nudgeMissingFields(hasName, hasMood, hasAssignee);
     }
-  }, [name, mood, assigned, flushSave, onClose, limitError]);
+  }, [name, mood, assigned, flushSave, onClose, limitError, showMsPicker]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -609,14 +615,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
         {/* ── Section 2 — Details ── */}
         <div className={`modal-section${tab==='details'?' active':''}`}>
-          <label className="fl" style={{marginTop:0}}>Notes</label>
-          <textarea placeholder="Add any notes about this task…" value={notes}
-            onChange={e=>setNotes(e.target.value)}
-            style={{width:'100%',minHeight:60,padding:'9px 12px',fontSize:13,fontFamily:'inherit',
-              border:'1.5px solid var(--border)',borderRadius:'var(--r)',outline:'none',
-              background:'var(--surface)',color:'var(--text)',resize:'vertical',lineHeight:1.5}}
-            onFocus={e=>e.target.style.borderColor='var(--accent)'}
-            onBlur={e=>e.target.style.borderColor='var(--border)'} />
+          <NotesField value={notes} onChange={setNotes} />
 
           <label className="fl">Tags</label>
           <div className="tag-chip-pick horizontal-scroll">
@@ -853,7 +852,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
         <div className="modal-footer">
           <div className="modal-footer-left">
             {isEdit && canDeleteTask(session, task) && <button className="btn btn-d" onClick={del}>🗑 Delete</button>}
-            <button className="modal-close-text" onClick={onClose}>Close</button>
+            <button className="modal-close-text" onClick={tryCloseModal}>Close</button>
           </div>
           <div className="modal-footer-right">
             {saveStatus === 'saving' && <span style={{fontSize:12,color:'var(--t3)',fontWeight:600}}>Saving…</span>}

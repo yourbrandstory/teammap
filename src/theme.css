@@ -878,6 +878,7 @@ td:hover .pg-cell-actions{display:flex}
 .smc-right.smc-collapsed{display:none}
 .smc-today-card{padding:10px;border-radius:12px;background:var(--s2);cursor:pointer;transition:.1s;margin-bottom:6px}
 .smc-today-card:hover{background:#f0eee9}
+.sc-status-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;line-height:1.4}
 .smc-today-time{font-size:10px;color:var(--t3);font-weight:500;margin-bottom:3px}
 .smc-today-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:5px}
 .smc-today-meta{display:flex;flex-wrap:wrap;gap:4px}
@@ -1627,6 +1628,27 @@ td:hover .pg-cell-actions{display:flex}
   text-decoration: underline;
   cursor: pointer;
 }
+/* rendered notes (read-only) */
+.notes-render p { margin: 0 0 6px; }
+.notes-render h1 { font-size: 22px; font-weight: 800; margin: 12px 0 6px; line-height: 1.3; letter-spacing: -.5px; }
+.notes-render h2 { font-size: 18px; font-weight: 700; margin: 10px 0 5px; line-height: 1.3; letter-spacing: -.3px; }
+.notes-render h3 { font-size: 15px; font-weight: 700; margin: 8px 0 4px; line-height: 1.3; }
+.notes-render ul { padding-left: 22px; margin: 4px 0; }
+.notes-render ol { padding-left: 22px; margin: 4px 0; }
+.notes-render li { margin: 2px 0; }
+.notes-render ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.notes-render ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 6px; }
+.notes-render ul[data-type="taskList"] li > label { flex-shrink: 0; margin-top: 2px; }
+.notes-render ul[data-type="taskList"] li[data-checked="true"] > div > p { text-decoration: line-through; color: var(--t3); }
+.notes-render blockquote { border-left: 3px solid var(--border); padding-left: 12px; margin: 6px 0; color: var(--t2); }
+.notes-render pre { background: var(--s2); border-radius: 6px; padding: 10px 14px; overflow-x: auto; font-size: 12px; margin: 6px 0; }
+.notes-render code { background: var(--s2); border-radius: 3px; padding: 1px 4px; font-size: 12px; }
+.notes-render a { color: var(--info); text-decoration: underline; }
+.notes-render hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.notes-render img { max-width: 100%; border-radius: 6px; margin: 6px 0; }
+.notes-render table { border-collapse: collapse; width: 100%; margin: 6px 0; }
+.notes-render th, .notes-render td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; font-size: 12px; }
+.notes-render th { background: var(--s2); font-weight: 700; }
 /* slash menu */
 .slash-menu {
   background: var(--surface);
