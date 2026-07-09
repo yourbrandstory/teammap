@@ -28,7 +28,7 @@ function ChipRow({
   onToggle: (id: string) => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+    <div className="frequency-row" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{label}</span>
       {items.map(item => {
         const on = selectedIds.includes(item.id);
@@ -65,8 +65,8 @@ function SelectFilter({
   onChange: (value: string) => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)' }}>{label}</span>
+    <div className="filter-select-group" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+      <span className="filter-select-label" style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)' }}>{label}</span>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -92,7 +92,7 @@ export default function FilterPanel({ freqTags, clients, members, moods, multi, 
   const moodVal = multi.moods.length ? multi.moods[0] : '';
 
   return (
-    <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface)', flexShrink: 0 }}>
+    <div className="filter-panel" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface)', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <ChipRow
           label="Frequency"
@@ -100,33 +100,35 @@ export default function FilterPanel({ freqTags, clients, members, moods, multi, 
           selectedIds={multi.freqs}
           onToggle={(id) => onToggle('freqs', id)}
         />
-        <SelectFilter
-          label="Project"
-          value={clientVal}
-          onChange={(val) => onSelect('clients', val ? [val] : [])}
-          options={[
-            { value: '', label: 'All projects' },
-            ...clients.map((c: any) => ({ value: c.id, label: c.name })),
-          ]}
-        />
-        <SelectFilter
-          label="Member"
-          value={memberVal}
-          onChange={(val) => onSelect('members', val ? [val] : [])}
-          options={[
-            { value: '', label: 'All members' },
-            ...members.map((m: any) => ({ value: m.id, label: m.name })),
-          ]}
-        />
-        <SelectFilter
-          label="Mood"
-          value={moodVal}
-          onChange={(val) => onSelect('moods', val ? [val] : [])}
-          options={[
-            { value: '', label: 'All moods' },
-            ...moods.map((m: any) => ({ value: m.id, label: m.icon ? m.icon + ' ' + m.label : m.label })),
-          ]}
-        />
+        <div className="filter-select-row">
+          <SelectFilter
+            label="Project"
+            value={clientVal}
+            onChange={(val) => onSelect('clients', val ? [val] : [])}
+            options={[
+              { value: '', label: 'All projects' },
+              ...clients.map((c: any) => ({ value: c.id, label: c.name })),
+            ]}
+          />
+          <SelectFilter
+            label="Member"
+            value={memberVal}
+            onChange={(val) => onSelect('members', val ? [val] : [])}
+            options={[
+              { value: '', label: 'All members' },
+              ...members.map((m: any) => ({ value: m.id, label: m.name })),
+            ]}
+          />
+          <SelectFilter
+            label="Mood"
+            value={moodVal}
+            onChange={(val) => onSelect('moods', val ? [val] : [])}
+            options={[
+              { value: '', label: 'All moods' },
+              ...moods.map((m: any) => ({ value: m.id, label: m.icon ? m.icon + ' ' + m.label : m.label })),
+            ]}
+          />
+        </div>
       </div>
       {hasFilters ? (
         <div style={{ marginTop: 8 }}>

@@ -4,6 +4,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 import { useStore, sel } from '../store/useStore';
 import { today, uid, getDeadlineClass, getDeadlineLabel } from '../lib/constants';
+import RichTextEditor from './RichTextEditor';
 
 function getSubstepStatus(substep, allTasks) {
   const links = substep.linkedTasks || [];
@@ -531,11 +532,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
           {/* ── SLIDE 1: Substeps ── */}
           <div className={`modal-section${tab===1?' active':''}`} style={{position:'relative'}}>
             <label className="fl">Notes</label>
-            <textarea placeholder="Add any notes about this milestone…" value={m.notes || ''}
-              onChange={e=>updateField('notes',e.target.value)}
-              style={{width:'100%',fontSize:14,padding:'9px 12px',border:'1.5px solid var(--border)',borderRadius:'var(--r)',outline:'none',fontFamily:'inherit',background:'var(--surface)',color:'var(--text)',resize:'vertical',minHeight:70,marginBottom:12}}
-              onFocus={e=>e.target.style.borderColor='var(--accent)'}
-              onBlur={e=>e.target.style.borderColor='var(--border)'} />
+            <RichTextEditor value={m.notes || ''} onChange={v => updateField('notes', v)} />
 
             {subTotal > 0 && (
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>

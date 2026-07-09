@@ -791,6 +791,7 @@ td:hover .pg-cell-actions{display:flex}
 
 /* ── mini month calendar ── */
 .smc-mm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.smc-mm-head-mob{display:none}
 .smc-mm-btn{width:24px;height:24px;border-radius:6px;border:none;background:var(--s2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-family:inherit;transition:.15s}
 .smc-mm-btn:hover{background:var(--s3);color:var(--text)}
 .smc-mm-label{font-size:12px;font-weight:700;color:var(--text);letter-spacing:-.2px}
@@ -1301,9 +1302,69 @@ td:hover .pg-cell-actions{display:flex}
   .tg2-tab{padding:0 8px;font-size:11px}
   .tg2-left{display:none}
   .tg2-body{flex-direction:column}
-  .tg2-right{padding:12px}
+  .tg2-right{padding:12px;overflow-x:hidden}
   .tg2-right>div:first-child{flex-direction:column!important;align-items:flex-start!important;gap:8px!important}
   .tg2-right>div:first-child>div{margin-left:0!important;flex-wrap:wrap!important}
+
+  /* Template cards — full view */
+  .tmpl-card-head{flex-wrap:wrap;gap:6px}
+  .tmpl-card-head .tmpl-card-head-title{width:100%;flex:0 0 100%}
+  .tmpl-card>div:last-child{flex-wrap:wrap;gap:6px}
+  .tmpl-card>div:last-child input[type=date]{width:100%}
+
+  /* Template card compact — stack vertically */
+  .tmpl-card--compact{flex-direction:column!important;align-items:stretch!important}
+  .tmpl-card--compact>div:first-child{width:100%}
+  .tmpl-card--compact>div:last-child{width:100%;justify-content:stretch;flex-wrap:wrap;gap:6px}
+  .tmpl-card--compact>div:last-child input[type=date]{flex:1;min-width:0}
+
+  /* Filter panel — frequency chips: single scrollable row */
+  .frequency-row{overflow-x:auto;flex-wrap:nowrap!important;scrollbar-width:none;padding-bottom:2px;width:100%;-webkit-overflow-scrolling:touch}
+  .frequency-row::-webkit-scrollbar{display:none}
+  .frequency-row>*{flex-shrink:0}
+
+  /* Filter panel — Project/Member/Mood: three in one row */
+  .filter-panel>div:first-child{flex-direction:column;gap:8px}
+  .filter-select-row{display:flex;flex-direction:row;gap:8px;width:100%}
+  .filter-select-group{flex:1;min-width:0;flex-direction:column!important;align-items:stretch!important;white-space:normal!important}
+  .filter-select-group .filter-select-label{font-size:10px;margin-bottom:2px}
+  .filter-select-group select{width:100%;text-overflow:ellipsis;overflow:hidden;padding:6px 8px;min-height:36px;font-size:12px}
+
+  /* SM Calendar — mobile restructure */
+  .smc-outer{padding:8px;gap:4px}
+  .smc-toggle-row{display:none}
+  .smc-body{grid-template-columns:1fr;gap:8px}
+  .smc-left{display:flex;flex-direction:column;gap:8px;overflow:visible}
+  .smc-left.smc-collapsed{display:flex}
+  .smc-card{padding:8px 10px}
+  .smc-mm-head-desk{display:none}
+  .smc-mm-head-mob{display:flex;gap:4px}
+  .smc-mm-head-mob .smc-mm-label{font-size:11px;flex:1;text-align:center;min-width:0}
+  .smc-mm-grid{display:none}
+  .smc-mm-grid.open{display:grid}
+
+  /* Client filters → horizontal scroll chips */
+  .smc-side-list{display:flex;flex-direction:row;overflow-x:auto;flex-wrap:nowrap;gap:6px;padding:4px 0;scrollbar-width:none}
+  .smc-side-list::-webkit-scrollbar{display:none}
+  .smc-side-row{flex-shrink:0;white-space:nowrap;padding:5px 10px;border-radius:20px;border:1.5px solid transparent}
+  .smc-side-row.smc-side-active{border-color:#26215C}
+  .smc-side-dot{width:6px;height:6px}
+  .smc-side-name{font-size:11px}
+  .smc-side-label{font-size:9px;margin-bottom:4px}
+
+  /* Main calendar: hide grid, keep header */
+  .smc-dow,.smc-grid,.smc-posting-empty{display:none}
+  .smc-main{border-radius:12px;padding:10px}
+  .smc-mh{flex-wrap:wrap;gap:6px;margin-bottom:0}
+
+  /* Member filter chips → horizontal scroll */
+  .smc-mh-chips{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;width:100%;margin-left:0;padding-bottom:4px}
+  .smc-mh-chips::-webkit-scrollbar{display:none}
+  .smc-flt{flex-shrink:0}
+
+  /* Right panel: full width */
+  .smc-right{width:100%;overflow:visible}
+  .smc-right.smc-collapsed{display:flex}
 
   /* Playground */
   .pg-topbar{flex-wrap:nowrap;padding:8px 10px;gap:4px}
@@ -1729,4 +1790,63 @@ td:hover .pg-cell-actions{display:flex}
   [contenteditable] {
     font-size: 16px !important;
   }
+}
+
+/* ── RICH TEXT EDITOR (BlockNote) ───────────────────────────── */
+.rich-editor-wrapper {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  transition: border-color .15s, box-shadow .15s;
+  background: #fff;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.rich-editor-wrapper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--al);
+}
+.rich-editor-wrapper .bn-container {
+  background: #fff !important;
+}
+.rich-editor-wrapper .bn-editor {
+  padding: 9px 12px !important;
+  min-height: 120px;
+  max-height: 320px;
+  overflow-y: auto;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  caret-color: var(--text);
+}
+.rich-editor-wrapper .bn-editor p,
+.rich-editor-wrapper .bn-editor li,
+.rich-editor-wrapper .bn-editor h1,
+.rich-editor-wrapper .bn-editor h2,
+.rich-editor-wrapper .bn-editor h3 {
+  margin: 0;
+  color: var(--text);
+}
+.rich-editor-wrapper .bn-editor p { font-size: 13px; }
+.rich-editor-wrapper .bn-editor h1 { font-size: 18px; font-weight: 700; }
+.rich-editor-wrapper .bn-editor h2 { font-size: 15px; font-weight: 700; }
+.rich-editor-wrapper .bn-editor h3 { font-size: 14px; font-weight: 600; }
+.rich-editor-wrapper .bn-editor .bn-block { font-size: 13px; }
+.rich-editor-wrapper .bn-editor ul,
+.rich-editor-wrapper .bn-editor ol {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+.rich-editor-wrapper .bn-editor blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 4px 0;
+  padding-left: 12px;
+  color: var(--t2);
+}
+.rich-editor-wrapper .bn-editor [data-content-type="codeBlock"] {
+  background: var(--s2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 12px;
 }

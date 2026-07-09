@@ -51,6 +51,7 @@ export default function SMCalendar() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [view, setView] = useState('execution');
+  const [calOpen, setCalOpen] = useState(false);
 
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth();
@@ -183,12 +184,18 @@ export default function SMCalendar() {
         <div className={`smc-left${leftOpen ? '' : ' smc-collapsed'}`}>
           {/* Mini month calendar */}
           <div className="smc-card">
-            <div className="smc-mm-head">
+            <div className="smc-mm-head smc-mm-head-desk">
               <button className="smc-mm-btn" onClick={prevMonth}>‹</button>
               <span className="smc-mm-label">{baseDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
               <button className="smc-mm-btn" onClick={nextMonth}>›</button>
             </div>
-            <div className="smc-mm-grid">
+            <div className="smc-mm-head smc-mm-head-mob">
+              <button className="smc-mm-btn" onClick={prevMonth}>‹</button>
+              <span className="smc-mm-label">{baseDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+              <button className="smc-mm-btn" onClick={() => setCalOpen(o => !o)}>&#128197;</button>
+              <button className="smc-mm-btn" onClick={nextMonth}>›</button>
+            </div>
+            <div className={`smc-mm-grid${calOpen ? ' open' : ''}`}>
               {MINI_DAYS.map((d, i) => (
                 <div key={i} className="smc-mm-dow">{d}</div>
               ))}

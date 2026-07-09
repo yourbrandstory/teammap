@@ -29,7 +29,7 @@ export default function TemplateCard({ template, S, compact, createConfirm, onCr
 
   if (compact) {
     return (
-      <div className="tmpl-card" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
+      <div className="tmpl-card tmpl-card--compact" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 5 }}>
             {freqLabels.map((l, i) => (
@@ -74,7 +74,7 @@ export default function TemplateCard({ template, S, compact, createConfirm, onCr
           ? freqLabels.map((l, i) => <span key={i} className="tmpl-freq-badge">{l}</span>)
           : <span className="tmpl-freq-badge" style={{ background: 'var(--t3)' }}>Custom</span>}
         <span style={{ fontSize: 16 }}>{mood ? mood.icon : '\uD83D\uDCCC'}</span>
-        <span style={{ fontSize: 14, fontWeight: 700, flex: 1 }}>{template.name}</span>
+        <span className="tmpl-card-head-title" style={{ fontSize: 14, fontWeight: 700, flex: 1 }}>{template.name}</span>
         {timeStr ? (
           <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'var(--s2)', border: '1px solid var(--border)', fontWeight: 700, color: 'var(--t2)' }}>
             {timeStr}

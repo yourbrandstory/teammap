@@ -7,7 +7,7 @@ import { useStore, sel } from '../store/useStore';
 import { getStatusMaps, getDefaultStatus, getCompleteStatus, getPassStatus, getStatusesForRole, canDeleteTask } from '../utils/statusUtils';
 import { validateTaskCreation, getMoodLimit } from '../utils/taskLimits';
 import Avatar from './Avatar';
-import NotesField from './NotesField';
+import RichTextEditor from './RichTextEditor';
 
 const DRAFT_KEY = 'tm_task_draft';
 
@@ -615,7 +615,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
         {/* ── Section 2 — Details ── */}
         <div className={`modal-section${tab==='details'?' active':''}`}>
-          <NotesField value={notes} onChange={setNotes} />
+          <label className="fl" style={{marginTop:0}}>Notes</label>
+          <RichTextEditor value={notes} onChange={setNotes} />
 
           <label className="fl">Tags</label>
           <div className="tag-chip-pick horizontal-scroll">

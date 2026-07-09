@@ -271,8 +271,8 @@ export default function TaskGen2() {
   return (
     <div className="tg2-app">
       <div className="tg2-subnav">
-        <button className="tg2-mobile-sidebar-btn" onClick={() => setMobileSidebarOpen(o => !o)} aria-label="Toggle sidebar">
-          &#9776;
+        <button className="tg2-mobile-sidebar-btn" onClick={() => setMobileSidebarOpen(o => !o)} aria-label="Toggle projects sidebar">
+          &#128196;
         </button>
         <div className={`tg2-tab${tg2Tab === 'all' ? ' active' : ''}`} onClick={() => switchTab('all')}>
           &#9783; All Templates
