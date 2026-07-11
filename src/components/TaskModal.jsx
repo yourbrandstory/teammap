@@ -8,6 +8,7 @@ import { getStatusMaps, getDefaultStatus, getCompleteStatus, getPassStatus, getS
 import { validateTaskCreation, getMoodLimit } from '../utils/taskLimits';
 import Avatar from './Avatar';
 import RichTextEditor from './RichTextEditor';
+import MilestoneModal from './MilestoneModal';
 
 const DRAFT_KEY = 'tm_task_draft';
 
@@ -77,6 +78,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const [msSearch, setMsSearch] = useState('');
   const [newSubstepTitle, setNewSubstepTitle] = useState('');
   const [showNewSubstepInput, setShowNewSubstepInput] = useState(false);
+  const [msModal, setMsModal] = useState(null);
   const taskIdRef = useRef(task.id || null);
   const [saveStatus, setSaveStatus] = useState(task.id ? 'idle' : 'idle');
   const debounceRef = useRef(null);
@@ -506,7 +508,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     onClose();
   };
 
-  return (
+  return (<>
     <div className="mbg" onMouseDown={(e)=>e.target===e.currentTarget&&tryCloseModal()}>
       <div className="modal modal-lg" onMouseDown={e=>e.stopPropagation()}>
         <h2 style={{marginBottom:4}}>{isEdit ? 'Edit task' : 'New task'}</h2>
@@ -871,11 +873,9 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                           <span style={{fontSize:10,color:'var(--t2)',fontWeight:600}}>Progress: {done}/{total}</span>
                         </div>
                         <div className="ms-card-actions">
-                          {onOpenMilestone && (
-                            <button className="ms-card-btn" onClick={() => onOpenMilestone(link.milestone)}>
-                              <i>✎</i> Edit milestone
-                            </button>
-                          )}
+                          <button className="ms-card-btn" onClick={() => setMsModal(link.milestone)}>
+                            <i>✎</i> Edit milestone
+                          </button>
                           <button className="ms-card-btn ms-card-btn-unlink" onClick={() => handleUnlinkTask(link.milestone.id, link.substep.id)}>
                             <i>⊘</i> Unlink
                           </button>
@@ -926,7 +926,13 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
         </div>
       </div>
     </div>
-  );
+    {msModal && (
+      <MilestoneModal
+        milestone={msModal}
+        onClose={() => setMsModal(null)}
+      />
+    )}
+  </>);
 }
 
 const SortableSubtaskRow = memo(function SortableSubtaskRow({ subtask, index, onToggle, onEdit, onDelete }) {
