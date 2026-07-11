@@ -330,6 +330,20 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     doSave(newSubsteps);
   };
 
+  const handleMoveTask = (fromSsId, taskId, toSsId) => {
+    const cur = fieldsRef.current.substeps || [];
+    let newSubsteps = cur.map(s => s.id === fromSsId ? {
+      ...s,
+      linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== taskId)
+    } : s);
+    newSubsteps = newSubsteps.map(s => s.id === toSsId ? {
+      ...s,
+      linkedTasks: [...(s.linkedTasks||[]), { taskId, showOnDashboard: true }]
+    } : s);
+    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    doSave(newSubsteps);
+  };
+
   const toggleTaskDashVisibility = (ssId, taskId) => {
     const cur = fieldsRef.current.substeps || [];
     const newSubsteps = cur.map(s => s.id === ssId ? {
@@ -553,6 +567,9 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
                       expanded={!!expandedSS[ss.id]}
                       S={S}
                       taskSensors={taskSensors}
+                      substeps={m.substeps}
+                      milestoneId={m.id}
+                      onMoveTask={handleMoveTask}
                       onToggleExpand={() => setExpandedSS(prev => ({ ...prev, [ss.id]: !prev[ss.id] }))}
                       onToggleDone={() => toggleSubstep(ss.id)}
                       onUpdateTitle={(e) => updateSubstepTitle(ss.id, e.target.value)}
@@ -677,7 +694,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
   );
 }
 
-function SortableSubstep({ ss, expanded, S, taskSensors, onToggleExpand, onToggleDone, onUpdateTitle, onRemove, onTaskDragEnd, onLinkTask, onCreateTask, onOpenTask, onDeleteTask, onToggleDashVis }) {
+function SortableSubstep({ ss, expanded, S, taskSensors, substeps=[], milestoneId, onMoveTask, onToggleExpand, onToggleDone, onUpdateTitle, onRemove, onTaskDragEnd, onLinkTask, onCreateTask, onOpenTask, onDeleteTask, onToggleDashVis }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ss.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -687,6 +704,8 @@ function SortableSubstep({ ss, expanded, S, taskSensors, onToggleExpand, onToggl
   };
   const status = getSubstepStatus(ss, S.tasks);
   const urgentCount = getUrgentCount(ss, S.tasks);
+  const msFromStore = milestoneId ? S.milestones.find(ms => ms.id === milestoneId) : null;
+  const msSubsteps = (msFromStore?.substeps || substeps).map(migrateSS);
 
   return (
     <div ref={setNodeRef} style={style} className={`ms-ss-card${isDragging ? ' dragging' : ''}`}>
@@ -733,6 +752,8 @@ function SortableSubstep({ ss, expanded, S, taskSensors, onToggleExpand, onToggl
                               tm={tm}
                               tc={tc}
                               ssId={ss.id}
+                              allSubsteps={msSubsteps}
+                              onMoveTask={onMoveTask}
                               onOpen={onOpenTask}
                               onDelete={onDeleteTask}
                               onToggleDashVis={onToggleDashVis}
@@ -761,7 +782,7 @@ function SortableSubstep({ ss, expanded, S, taskSensors, onToggleExpand, onToggl
   );
 }
 
-const SortableLinkedTask = memo(function SortableLinkedTask({ ltObj, lt, tm, tc, ssId, onOpen, onDelete, onToggleDashVis }) {
+const SortableLinkedTask = memo(function SortableLinkedTask({ ltObj, lt, tm, tc, ssId, allSubsteps=[], onMoveTask, onOpen, onDelete, onToggleDashVis }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ltObj.taskId });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -793,6 +814,20 @@ const SortableLinkedTask = memo(function SortableLinkedTask({ ltObj, lt, tm, tc,
           onChange={() => onToggleDashVis(ltObj.taskId)} />
         Show on Task Dashboard
       </label>
+      {allSubsteps.length > 1 && (
+        <div className="linked-task-move">
+          <select
+            onChange={(e) => { const to = e.target.value; if (to) onMoveTask(ssId, ltObj.taskId, to); }}
+            value=""
+            style={{fontSize:11,padding:'2px 4px',borderRadius:4,border:'1px solid var(--border)',background:'var(--surface)',color:'var(--t1)',cursor:'pointer',width:'100%'}}
+          >
+            <option value="" disabled>⇄ Move to…</option>
+            {allSubsteps.filter(s => s.id !== ssId).map(s => (
+              <option key={s.id} value={s.id}>{s.title || '(Untitled)'}</option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 });

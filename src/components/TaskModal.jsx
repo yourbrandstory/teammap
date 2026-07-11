@@ -75,6 +75,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const [linkSsId, setLinkSsId] = useState('');
   const [showMsPicker, setShowMsPicker] = useState(false);
   const [msSearch, setMsSearch] = useState('');
+  const [newSubstepTitle, setNewSubstepTitle] = useState('');
+  const [showNewSubstepInput, setShowNewSubstepInput] = useState(false);
   const taskIdRef = useRef(task.id || null);
   const [saveStatus, setSaveStatus] = useState(task.id ? 'idle' : 'idle');
   const debounceRef = useRef(null);
@@ -130,16 +132,25 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   }, [task.id, S.milestones]);
 
   const filteredMilestones = useMemo(() => {
-    if (!msSearch.trim()) return S.milestones.filter(m => !m.deleted);
-    const q = msSearch.toLowerCase().trim();
-    return S.milestones.filter(m => {
-      if (m.deleted) return false;
-      if (m.title.toLowerCase().includes(q)) return true;
-      const clientName = m.clientId ? (sel.gc(S, m.clientId)?.name || '').toLowerCase() : '';
-      if (clientName.includes(q)) return true;
-      const assigneeNames = (m.assignedTo || []).map(id => (sel.gm(S, id)?.name || '').toLowerCase());
-      if (assigneeNames.some(n => n.includes(q))) return true;
-      return false;
+    let result;
+    if (!msSearch.trim()) {
+      result = S.milestones.filter(m => !m.deleted);
+    } else {
+      const q = msSearch.toLowerCase().trim();
+      result = S.milestones.filter(m => {
+        if (m.deleted) return false;
+        if (m.title.toLowerCase().includes(q)) return true;
+        const clientName = m.clientId ? (sel.gc(S, m.clientId)?.name || '').toLowerCase() : '';
+        if (clientName.includes(q)) return true;
+        const assigneeNames = (m.assignedTo || []).map(id => (sel.gm(S, id)?.name || '').toLowerCase());
+        if (assigneeNames.some(n => n.includes(q))) return true;
+        return false;
+      });
+    }
+    return result.sort((a, b) => {
+      const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return bTime - aTime;
     });
   }, [msSearch, S.milestones, S]);
 
@@ -443,6 +454,20 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     setLinkMsId('');
     setLinkSsId('');
     setShowMsPicker(false);
+    setShowNewSubstepInput(false);
+    setNewSubstepTitle('');
+  };
+
+  const handleAddNewSubstep = async () => {
+    if (!newSubstepTitle.trim() || !linkMsId) return;
+    const ms = S.milestones.find(m => m.id === linkMsId);
+    if (!ms) return;
+    const newSs = { id: uid(), title: newSubstepTitle.trim(), done: false, linkedTasks: [] };
+    const updated = { ...ms, substeps: [...(ms.substeps || []), newSs] };
+    await upsertMilestone(updated);
+    setLinkSsId(newSs.id);
+    setShowNewSubstepInput(false);
+    setNewSubstepTitle('');
   };
 
   const handleOpenPicker = () => {
@@ -455,6 +480,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     setLinkMsId('');
     setLinkSsId('');
     setShowMsPicker(false);
+    setShowNewSubstepInput(false);
+    setNewSubstepTitle('');
   };
 
   const handleUnlinkTask = async (msId, ssId) => {
@@ -796,7 +823,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                     </div>
                   ) : (
                     <>
-                      <button className="btn btn-xs" onClick={() => { setLinkMsId(''); setLinkSsId(''); }} style={{marginBottom:8}}>← Back</button>
+                      <button className="btn btn-xs" onClick={() => { setLinkMsId(''); setLinkSsId(''); setShowNewSubstepInput(false); setNewSubstepTitle(''); }} style={{marginBottom:8}}>← Back</button>
                       <label className="fl" style={{marginTop:0}}>Select substep</label>
                       <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:8}}>
                         {(S.milestones.find(m => m.id === linkMsId)?.substeps||[]).map(ss => (
@@ -805,6 +832,18 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                             <span style={{fontSize:13}}>{ss.title || '(Untitled)'}</span>
                           </label>
                         ))}
+                        {!showNewSubstepInput ? (
+                          <button className="ms-empty-btn" style={{fontSize:12,padding:'6px 10px',marginTop:4,textAlign:'left'}} onClick={() => setShowNewSubstepInput(true)}>
+                            + New substep
+                          </button>
+                        ) : (
+                          <div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>
+                            <input type="text" placeholder="Substep title…" value={newSubstepTitle}
+                              onChange={e => setNewSubstepTitle(e.target.value)} style={{flex:1,fontSize:12}} autoFocus />
+                            <button className="btn btn-xs" disabled={!newSubstepTitle.trim()} onClick={handleAddNewSubstep}>Add</button>
+                            <button className="btn btn-xs btn-g" onClick={() => { setShowNewSubstepInput(false); setNewSubstepTitle(''); }}>✕</button>
+                          </div>
+                        )}
                       </div>
                       <button className="btn btn-sm" disabled={!linkSsId} onClick={handleLinkTask}>Link Task</button>
                     </>
