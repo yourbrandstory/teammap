@@ -558,6 +558,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
                       {(summary.overdue > 0 || summary.dueToday > 0) && (
                         <div className="ms-dash-summary">
                           {summary.overdue > 0 && <span className="ms-sum-overdue">● {summary.overdue} overdue</span>}
+                          {summary.overdue > 0 && summary.dueToday > 0 && <span className="ms-sum-sep">·</span>}
                           {summary.dueToday > 0 && <span className="ms-sum-today">● {summary.dueToday} due today</span>}
                         </div>
                       )}
@@ -684,7 +685,7 @@ function getMilestoneSummary(milestone, allTasks) {
   let overdue = 0;
   let dueToday = 0;
   const now = new Date();
-  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   for (const ss of (milestone.substeps || [])) {
     for (const link of (ss.linkedTasks || [])) {
       const task = allTasks.find(t => t.id === link.taskId);
@@ -919,6 +920,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
                     {(summary.overdue > 0 || summary.dueToday > 0) && (
                       <div className="ms-dash-summary">
                         {summary.overdue > 0 && <span className="ms-sum-overdue">● {summary.overdue} overdue</span>}
+                        {summary.overdue > 0 && summary.dueToday > 0 && <span className="ms-sum-sep">·</span>}
                         {summary.dueToday > 0 && <span className="ms-sum-today">● {summary.dueToday} due today</span>}
                       </div>
                     )}

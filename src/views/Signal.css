@@ -1,0 +1,626 @@
+/* ==========================================================================
+   Signal — ported from adtrack-hub styles.css
+   Dark sidebar + light content area with oklch color system.
+   scoped under .sg-root to avoid leaking into TeamMap's own theme.
+   ========================================================================== */
+
+.sg-root {
+  --radius: 0.5rem;
+  --background: oklch(0.985 0.003 100);
+  --foreground: oklch(0.20 0.02 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.20 0.02 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.20 0.02 240);
+  --primary: oklch(0.52 0.08 165);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.005 220);
+  --secondary-foreground: oklch(0.25 0.02 240);
+  --muted: oklch(0.96 0.005 220);
+  --muted-foreground: oklch(0.5 0.015 240);
+  --accent: oklch(0.93 0.02 165);
+  --accent-foreground: oklch(0.30 0.05 165);
+  --destructive: oklch(0.58 0.20 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.90 0.005 240);
+  --input: oklch(0.92 0.005 240);
+  --ring: oklch(0.52 0.08 165);
+  --pos: oklch(0.55 0.13 155);
+  --neg: oklch(0.58 0.20 25);
+  --chart-1: oklch(0.52 0.08 165);
+  --chart-2: oklch(0.55 0.13 250);
+  --chart-3: oklch(0.65 0.15 60);
+  --chart-4: oklch(0.55 0.15 20);
+  --chart-5: oklch(0.45 0.10 300);
+
+  --sidebar: oklch(0.20 0.015 240);
+  --sidebar-foreground: oklch(0.85 0.01 240);
+  --sidebar-primary: oklch(0.52 0.08 165);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.26 0.02 240);
+  --sidebar-accent-foreground: oklch(0.98 0.005 240);
+  --sidebar-border: oklch(0.28 0.02 240);
+  --sidebar-ring: oklch(0.52 0.08 165);
+
+  color: var(--foreground);
+  background: var(--background);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.sg-root .sg-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100%;
+}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+.sg-root .sg-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--sidebar-border);
+}
+
+.sg-root .sg-sidebar-header {
+  border-bottom: 1px solid var(--sidebar-border);
+  padding: 0;
+}
+
+.sg-root .sg-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.sg-root .sg-sidebar-footer {
+  border-top: 1px solid var(--sidebar-border);
+  padding: 8px 12px;
+}
+
+/* Account switcher in sidebar */
+.sg-root .sg-acct-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--sidebar-foreground);
+  cursor: pointer;
+  text-align: left;
+  border-radius: 6px;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.sg-root .sg-acct-btn:hover {
+  background: var(--sidebar-accent);
+}
+
+.sg-root .sg-acct-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+.sg-root .sg-acct-name {
+  font-size: 14px;
+  font-weight: 500;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nav items */
+.sg-root .sg-nav-group-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sidebar-foreground);
+  opacity: 0.5;
+  padding: 8px 8px 4px;
+  font-weight: 600;
+}
+
+.sg-root .sg-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-size: 14px;
+  color: var(--sidebar-foreground);
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.sg-root .sg-nav-item:hover {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+.sg-root .sg-nav-item.active {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+.sg-root .sg-nav-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* User info in footer */
+.sg-root .sg-user-email {
+  font-size: 12px;
+  color: var(--sidebar-foreground);
+  opacity: 0.6;
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sg-root .sg-sign-out-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 14px;
+  color: var(--sidebar-foreground);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.sg-root .sg-sign-out-btn:hover {
+  background: var(--sidebar-accent);
+}
+
+/* ── Content area ───────────────────────────────────────── */
+.sg-root .sg-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--background);
+}
+
+.sg-root .sg-content-header {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: 0 12px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sg-root .sg-content-body {
+  flex: 1;
+  overflow: auto;
+  background: var(--background);
+}
+
+/* ── Dropdown for account selector ──────────────────────── */
+.sg-root .sg-dropdown-content {
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 200px;
+  padding: 4px;
+  z-index: 1000;
+}
+.sg-root .sg-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--popover-foreground);
+  transition: background 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.sg-root .sg-dropdown-item:hover {
+  background: var(--accent);
+}
+.sg-root .sg-dropdown-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  padding: 4px 8px;
+}
+.sg-root .sg-dropdown-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+.sg-root .sg-dropdown-check {
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Cards ──────────────────────────────────────────────── */
+.sg-root .sg-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.sg-root .sg-card-header {
+  padding: 16px 16px 0;
+}
+.sg-root .sg-card-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+.sg-root .sg-card-content {
+  padding: 16px;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.sg-root .sg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-family: inherit;
+  line-height: 1;
+  white-space: nowrap;
+}
+.sg-root .sg-btn:hover {
+  background: var(--secondary);
+}
+.sg-root .sg-btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.sg-root .sg-btn-primary:hover {
+  opacity: 0.9;
+}
+.sg-root .sg-btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+}
+.sg-root .sg-btn-ghost:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.sg-root .sg-btn-sm {
+  font-size: 13px;
+  padding: 6px 12px;
+  height: 32px;
+}
+.sg-root .sg-btn-xs {
+  font-size: 12px;
+  padding: 4px 8px;
+  height: 28px;
+}
+.sg-root .sg-btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sg-root .sg-btn-destructive {
+  color: var(--destructive);
+  border-color: transparent;
+  background: transparent;
+}
+.sg-root .sg-btn-destructive:hover {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+/* ── Inputs ─────────────────────────────────────────────── */
+.sg-root input[type="text"],
+.sg-root input[type="date"],
+.sg-root input[type="password"],
+.sg-root input[type="datetime-local"],
+.sg-root select,
+.sg-root textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--background);
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sg-root input:focus,
+.sg-root select:focus,
+.sg-root textarea:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px oklch(0.52 0.08 165 / 0.15);
+}
+.sg-root input[type="file"] {
+  font-size: 14px;
+}
+
+/* ── Badges ─────────────────────────────────────────────── */
+.sg-root .sg-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.sg-root .sg-badge-secondary {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+.sg-root .sg-badge-outline {
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+.sg-root h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+.sg-root h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+.sg-root h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.sg-root h4 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+.sg-root .sg-text-muted {
+  color: var(--muted-foreground);
+}
+
+/* ── Tabs ───────────────────────────────────────────────── */
+.sg-root .sg-tabs {
+  display: flex;
+  gap: 0;
+}
+.sg-root .sg-tab-trigger {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.sg-root .sg-tab-trigger:hover {
+  color: var(--foreground);
+}
+.sg-root .sg-tab-trigger.active {
+  color: var(--foreground);
+  border-bottom-color: var(--primary);
+}
+
+/* ── Tables ─────────────────────────────────────────────── */
+.sg-root table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.sg-root thead {
+  background: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+.sg-root thead th {
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 500;
+}
+.sg-root tbody td {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+.sg-root .sg-num {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+}
+
+/* ── Utility ─────────────────────────────────────────────── */
+.sg-root .sg-space-y-1 > * + * { margin-top: 4px; }
+.sg-root .sg-space-y-2 > * + * { margin-top: 8px; }
+.sg-root .sg-space-y-3 > * + * { margin-top: 12px; }
+.sg-root .sg-space-y-4 > * + * { margin-top: 16px; }
+.sg-root .sg-space-y-6 > * + * { margin-top: 24px; }
+.sg-root .sg-flex { display: flex; }
+.sg-root .sg-flex-col { flex-direction: column; }
+.sg-root .sg-flex-wrap { flex-wrap: wrap; }
+.sg-root .sg-items-center { align-items: center; }
+.sg-root .sg-justify-between { justify-content: space-between; }
+.sg-root .sg-justify-end { justify-content: flex-end; }
+.sg-root .sg-justify-center { justify-content: center; }
+.sg-root .sg-gap-1 { gap: 4px; }
+.sg-root .sg-gap-2 { gap: 8px; }
+.sg-root .sg-gap-3 { gap: 12px; }
+.sg-root .sg-gap-4 { gap: 16px; }
+.sg-root .sg-gap-6 { gap: 24px; }
+.sg-root .sg-flex-1 { flex: 1; }
+.sg-root .sg-shrink-0 { flex-shrink: 0; }
+.sg-root .sg-min-w-0 { min-width: 0; }
+.sg-root .sg-w-full { width: 100%; }
+.sg-root .sg-text-xs { font-size: 12px; }
+.sg-root .sg-text-sm { font-size: 14px; }
+.sg-root .sg-text-lg { font-size: 18px; }
+.sg-root .sg-text-xl { font-size: 24px; }
+.sg-root .sg-font-medium { font-weight: 500; }
+.sg-root .sg-font-semibold { font-weight: 600; }
+.sg-root .sg-font-bold { font-weight: 700; }
+.sg-root .sg-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sg-root .sg-border-t { border-top: 1px solid var(--border); }
+.sg-root .sg-border-b { border-bottom: 1px solid var(--border); }
+.sg-root .sg-rounded { border-radius: var(--radius); }
+.sg-root .sg-p-4 { padding: 16px; }
+.sg-root .sg-p-6 { padding: 24px; }
+.sg-root .sg-px-3 { padding-left: 12px; padding-right: 12px; }
+.sg-root .sg-py-2 { padding-top: 8px; padding-bottom: 8px; }
+.sg-root .sg-py-3 { padding-top: 12px; padding-bottom: 12px; }
+.sg-root .sg-mb-2 { margin-bottom: 8px; }
+.sg-root .sg-mb-4 { margin-bottom: 16px; }
+.sg-root .sg-text-center { text-align: center; }
+.sg-root .sg-text-right { text-align: right; }
+.sg-root .sg-cursor-pointer { cursor: pointer; }
+.sg-root .sg-select-none { user-select: none; }
+.sg-root .sg-whitespace-nowrap { white-space: nowrap; }
+.sg-root .sg-overflow-auto { overflow: auto; }
+.sg-root .sg-max-w-5xl { max-width: 64rem; }
+.sg-root .sg-mx-auto { margin-left: auto; margin-right: auto; }
+.sg-root .sg-grid { display: grid; }
+.sg-root .sg-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sg-root .sg-grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.sg-root .sg-gap-3 { gap: 12px; }
+
+/* ── Accordion ───────────────────────────────────────────── */
+.sg-root .sg-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sg-root .sg-accordion-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+}
+.sg-root .sg-accordion-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--foreground);
+  transition: background 0.15s;
+}
+.sg-root .sg-accordion-trigger:hover {
+  background: var(--muted);
+}
+.sg-root .sg-accordion-content {
+  padding: 4px 16px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Dialog overlay ──────────────────────────────────────── */
+.sg-root .sg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+.sg-root .sg-dialog {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.sg-root .sg-dialog-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.sg-root .sg-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Alert dialog ────────────────────────────────────────── */
+.sg-root .sg-alert-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 600;
+}
+.sg-root .sg-alert-dialog {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: min(400px, calc(100% - 32px));
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.sg-root .sg-alert-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ── Recharts overrides ──────────────────────────────────── */
+.sg-root .recharts-cartesian-grid line { stroke: var(--border); }
+.sg-root .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+}

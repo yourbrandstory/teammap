@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fmtD, getDeadlineClass, getDeadlineLabel } from '../lib/constants';
+import { fmtD } from '../lib/constants';
 import { getStatusMaps, getStatusesForRole } from '../utils/statusUtils';
 import { useStore, sel } from '../store/useStore';
 import { useUIStore } from '../store/useUIStore';
@@ -8,6 +8,7 @@ import { canCreateTask, canAddTaskToMood } from '../utils/taskLimits';
 import useMemberKanban from '../hooks/useMemberKanban';
 import TaskModal from '../components/TaskModal';
 import MilestoneModal from '../components/MilestoneModal';
+import MilestoneDashCard from '../components/MilestoneDashCard';
 
 export default function MemberKanban() {
   const {
@@ -97,12 +98,11 @@ export default function MemberKanban() {
                 {moodMilestones.length > 0 && (
                   <div style={{ padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {moodMilestones.map(ms => (
-                      <KanbanMilestoneCard
+                      <MilestoneDashCard
                         key={ms.id}
-                        ms={ms}
+                        milestone={ms}
                         S={S}
-                        onOpen={() => setMsModal(ms)}
-                        onOpenTask={(task: any) => setTaskModal(task)}
+                        onClick={() => setMsModal(ms)}
                       />
                     ))}
                   </div>
@@ -112,12 +112,11 @@ export default function MemberKanban() {
                 {noMoodMilestones.length > 0 && (
                   <div style={{ padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {noMoodMilestones.map(ms => (
-                      <KanbanMilestoneCard
+                      <MilestoneDashCard
                         key={ms.id}
-                        ms={ms}
+                        milestone={ms}
                         S={S}
-                        onOpen={() => setMsModal(ms)}
-                        onOpenTask={(task: any) => setTaskModal(task)}
+                        onClick={() => setMsModal(ms)}
                       />
                     ))}
                   </div>
@@ -204,86 +203,6 @@ export default function MemberKanban() {
           onClose={() => setMsModal(null)}
           onOpenTask={(t: any) => setTaskModal(t)}
         />
-      )}
-    </div>
-  );
-}
-
-function KanbanMilestoneCard({ ms, S, onOpen, onOpenTask }: {
-  ms: any;
-  S: any;
-  onOpen: () => void;
-  onOpenTask: (task: any) => void;
-}) {
-  const total = (ms.substeps || []).length;
-  const done = ms.substeps.filter((s: any) => s.done).length;
-  const pct = total ? Math.round(done / total * 100) : 0;
-  const dlClass = getDeadlineClass(ms.deadline);
-  const dlLabel = getDeadlineLabel(ms.deadline);
-  const mood = ms.mood ? sel.gmood(S, ms.mood) : null;
-  const client = ms.clientId ? sel.gc(S, ms.clientId) : null;
-  const linkedTasks = ms.substeps.flatMap((ss: any) =>
-    (ss.linkedTasks || []).map((lt: any) => ({ ssTitle: ss.title, ...lt }))
-  );
-
-  return (
-    <div
-      onClick={onOpen}
-      style={{
-        background: 'var(--s2)', borderRadius: 8, border: '1px solid var(--border)',
-        padding: '8px 10px', cursor: 'pointer', fontSize: 13,
-        transition: 'box-shadow .15s',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,.08)'; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', letterSpacing: '.5px' }}>
-          ◆ MILESTONE
-        </span>
-        {dlLabel && <span className={dlClass} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, color: 'var(--t3)' }}>{dlLabel}</span>}
-      </div>
-      <div style={{ fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>{ms.title}</div>
-      {total > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <div style={{ flex: 1, height: 4, background: 'var(--s3)', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 2, background: 'var(--accent)', width: `${pct}%` }} />
-          </div>
-          <span style={{ fontSize: 10, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{done}/{total} · {pct}%</span>
-        </div>
-      )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
-        {client && (
-          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: `${client.color}15`, color: client.color }}>
-            {client.name}
-          </span>
-        )}
-        {mood && (
-          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: mood.bg, color: mood.color }}>
-            {mood.icon} {mood.label}
-          </span>
-        )}
-      </div>
-      {linkedTasks.length > 0 && (
-        <div style={{ borderTop: '1px solid var(--b3)', marginTop: 4, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {linkedTasks.slice(0, 3).map((lt: any) => {
-            const task = S.tasks.find((t: any) => t.id === lt.taskId);
-            if (!task) return null;
-            return (
-              <div
-                key={lt.taskId}
-                onClick={e => { e.stopPropagation(); onOpenTask(task); }}
-                style={{ fontSize: 11, padding: '3px 6px', borderRadius: 4, background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-              >
-                <span style={{ color: 'var(--t2)', flex: 1 }}>{task.name}</span>
-                <span style={{ fontSize: 9, color: 'var(--t3)' }}>✎</span>
-              </div>
-            );
-          })}
-          {linkedTasks.length > 3 && (
-            <span style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center' }}>+{linkedTasks.length - 3} more</span>
-          )}
-        </div>
       )}
     </div>
   );

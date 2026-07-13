@@ -501,6 +501,32 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     await upsertMilestone(updated);
   };
 
+  const handleMoveTask = async (msId, fromSsId, toSsId) => {
+    const tid = task.id || taskIdRef.current;
+    console.log('[MoveTask] TaskModal handleMoveTask', { msId, fromSsId, toSsId, tid, hasMs: !!S.milestones.find(m => m.id === msId), hasFrom: !!S.milestones.find(m => m.id === msId)?.substeps?.find(s => s.id === fromSsId), hasTo: !!S.milestones.find(m => m.id === msId)?.substeps?.find(s => s.id === toSsId) });
+    if (!tid || !msId || !fromSsId || !toSsId || fromSsId === toSsId) { console.log('[MoveTask] early return', { tid, msId, fromSsId, toSsId }); return; }
+    const ms = S.milestones.find(m => m.id === msId);
+    if (!ms) { console.log('[MoveTask] milestone not found'); return; }
+    const updated = {
+      ...ms,
+      substeps: ms.substeps.map(s => {
+        if (s.id === fromSsId) {
+          return { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== tid) };
+        }
+        if (s.id === toSsId) {
+          return { ...s, linkedTasks: [...(s.linkedTasks||[]), { taskId: tid, showOnDashboard: true }] };
+        }
+        return s;
+      })
+    };
+    try {
+      const result = await upsertMilestone(updated);
+      console.log('[MoveTask] upsertMilestone succeeded', { id: result?.id });
+    } catch (err) {
+      console.error('[MoveTask] upsertMilestone FAILED', err);
+    }
+  };
+
   const del = async () => {
     if (!confirm('Delete this task? It moves to Deleted Tasks where you can recover it.')) return;
     await softDeleteTask(task.id);
@@ -876,6 +902,16 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                           <button className="ms-card-btn" onClick={() => setMsModal(link.milestone)}>
                             <i>✎</i> Edit milestone
                           </button>
+                          {link.milestone.substeps.length > 1 && (
+                            <select value="" className="ms-card-select"
+                              onChange={(e) => { const to = e.target.value; console.log('[MoveTask] TaskModal card onChange', { msId: link.milestone.id, fromSsId: link.substep.id, to, substepIds: link.milestone.substeps.map(s => s.id) }); if (to) handleMoveTask(link.milestone.id, link.substep.id, to); }}
+                            >
+                              <option value="" disabled>⇄ Move to…</option>
+                              {link.milestone.substeps.filter(s => s.id !== link.substep.id).map(s => (
+                                <option key={s.id} value={s.id}>{s.title || '(Untitled)'}</option>
+                              ))}
+                            </select>
+                          )}
                           <button className="ms-card-btn ms-card-btn-unlink" onClick={() => handleUnlinkTask(link.milestone.id, link.substep.id)}>
                             <i>⊘</i> Unlink
                           </button>

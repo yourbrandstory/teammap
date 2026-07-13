@@ -606,6 +606,9 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--ac
 .ms-card-btn:hover{background:var(--s2)}
 .ms-card-btn-unlink{color:var(--warn);border-color:var(--warn)}
 .ms-card-btn-unlink:hover{background:var(--wl)}
+.ms-card-select{font-size:11px;padding:5px 11px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--surface);color:var(--t2);cursor:pointer;font-family:inherit;font-weight:500;appearance:auto;-webkit-appearance:auto;-moz-appearance:auto;transition:.15s}
+.ms-card-select:hover{background:var(--s2)}
+.linked-task-move{display:inline-flex}
 .search-wrap{border:1px solid var(--border);border-radius:var(--r);max-height:240px;display:flex;flex-direction:column;overflow:hidden}
 .search-bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
 .search-bar input{flex:1;border:none;outline:none;font-size:13px;font-family:inherit;background:transparent;color:var(--text);padding:2px 0}
@@ -786,7 +789,10 @@ td:hover .pg-cell-actions{display:flex}
 .smc-side-row:hover{background:var(--s2);color:var(--text)}
 .smc-side-row.smc-side-active{background:#EEEDFE;color:#26215C;font-weight:600}
 .smc-side-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.smc-side-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smc-side-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.smc-side-hide-btn{font-size:11px;cursor:pointer;color:var(--t3);margin-left:auto;flex-shrink:0;user-select:none;transition:color .1s}
+.smc-side-hide-btn:hover{color:var(--text)}
+.smc-side-hide-btn.hidden{color:#D85A30;font-weight:500}
 .smc-side-empty{font-size:11px;color:var(--t3);padding:6px 0;text-align:center}
 
 /* ── mini month calendar ── */

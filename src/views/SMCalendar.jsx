@@ -53,6 +53,11 @@ export default function SMCalendar() {
   const [view, setView] = useState('execution');
   const [calOpen, setCalOpen] = useState(false);
 
+  const [hiddenClients, setHiddenClients] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sm_hidden_clients') || '[]'); }
+    catch { return []; }
+  });
+
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth();
   const days = useMemo(() => monthDays(year, month), [year, month]);
@@ -68,12 +73,21 @@ export default function SMCalendar() {
     return S.tasks.filter(t => !t.deleted && t.tags?.includes(smTagId));
   }, [S.tasks, smTagId]);
 
+  const toggleHideClient = useCallback((clientId) => {
+    setHiddenClients(prev => {
+      const next = prev.includes(clientId) ? prev.filter(id => id !== clientId) : [...prev, clientId];
+      localStorage.setItem('sm_hidden_clients', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const filteredTasks = useMemo(() => {
     let list = smTasks;
     if (memberFilter) list = list.filter(t => t.assignedTo?.includes(memberFilter));
     if (clientFilter) list = list.filter(t => t.clientId === clientFilter);
+    if (hiddenClients.length) list = list.filter(t => !hiddenClients.includes(t.clientId));
     return list;
-  }, [smTasks, memberFilter, clientFilter]);
+  }, [smTasks, memberFilter, clientFilter, hiddenClients]);
 
   const tasksByDate = useMemo(() => {
     const map = {};
@@ -224,14 +238,18 @@ export default function SMCalendar() {
               ) : (
                 socialClients.map(c => {
                   const active = clientFilter === c.id;
+                  const hidden = hiddenClients.includes(c.id);
                   return (
                     <div
                       key={c.id}
                       className={`smc-side-row${active ? ' smc-side-active' : ''}`}
-                      onClick={() => setClientFilter(prev => prev === c.id ? '' : c.id)}
                     >
                       <span className="smc-side-dot" style={{ background: c.color || 'var(--t3)' }} />
-                      <span className="smc-side-name">{c.name}</span>
+                      <span className="smc-side-name" onClick={() => setClientFilter(prev => prev === c.id ? '' : c.id)}>{c.name}</span>
+                      <span
+                        className={`smc-side-hide-btn${hidden ? ' hidden' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); toggleHideClient(c.id); }}
+                      >{hidden ? 'Hidden' : 'Hide'}</span>
                     </div>
                   );
                 })
@@ -311,10 +329,10 @@ export default function SMCalendar() {
                             const hasIcons = hasLinks || hasSubtasks || hasNotes;
                             return (
                               <div key={t.id} className="task" style={{ borderLeftColor: moodColor }} onClick={() => openTask(t)}>
+                                <span className="task-name">{t.name}</span>
                                  <div className="task-top">
                                    {theMood && <span className="mood-tag" style={{ background: p?.bg || 'var(--s2)', color: moodColor }}>{theMood.icon} {theMood.label}</span>}
                                    {t.status && <span className="sc-status-tag" style={{ background: STB[t.status], color: STC[t.status] }}>{t.status}</span>}
-                                   <span className="task-name">{t.name}</span>
                                 </div>
                                 {(t.assignedTo?.length > 0 || client) && (
                                   <div className="task-meta">

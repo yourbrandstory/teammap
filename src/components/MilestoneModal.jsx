@@ -7,27 +7,25 @@ import { today, uid, getDeadlineClass, getDeadlineLabel } from '../lib/constants
 import RichTextEditor from './RichTextEditor';
 
 function getSubstepStatus(substep, allTasks) {
-  const links = substep.linkedTasks || [];
-  if (links.length === 0) return null;
-  const task = allTasks.find(t => t.id === links[0].taskId);
-  if (!task || !task.date || task.status === 'Complete' || task.deleted) return null;
+  let overdue = 0;
+  let dueToday = 0;
   const now = new Date();
-  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
-  const taskDateStr = task.date.split('T')[0];
-  if (taskDateStr < todayStr) {
-    const d1 = new Date(taskDateStr + 'T00:00:00');
-    const d2 = new Date(todayStr + 'T00:00:00');
-    const diff = Math.round((d2 - d1) / 86400000);
-    return { type: 'overdue', label: `${diff}d late` };
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  for (const link of (substep.linkedTasks || [])) {
+    const task = allTasks.find(t => t.id === link.taskId);
+    if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
+    const taskDateStr = task.date.split('T')[0];
+    if (taskDateStr < todayStr) overdue++;
+    else if (taskDateStr === todayStr) dueToday++;
   }
-  if (taskDateStr === todayStr) return { type: 'today', label: 'today' };
-  return null;
+  if (overdue === 0 && dueToday === 0) return null;
+  return { overdue, dueToday };
 }
 
 function getUrgentCount(substep, allTasks) {
   let count = 0;
   const now = new Date();
-  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   for (const link of (substep.linkedTasks || [])) {
     const task = allTasks.find(t => t.id === link.taskId);
     if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
@@ -331,6 +329,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
   };
 
   const handleMoveTask = (fromSsId, taskId, toSsId) => {
+    console.log('[MoveTask] MilestoneModal handleMoveTask', { fromSsId, taskId, toSsId, hasFrom: !!fieldsRef.current.substeps?.find(s => s.id === fromSsId), hasTo: !!fieldsRef.current.substeps?.find(s => s.id === toSsId) });
     const cur = fieldsRef.current.substeps || [];
     let newSubsteps = cur.map(s => s.id === fromSsId ? {
       ...s,
@@ -704,8 +703,7 @@ function SortableSubstep({ ss, expanded, S, taskSensors, substeps=[], milestoneI
   };
   const status = getSubstepStatus(ss, S.tasks);
   const urgentCount = getUrgentCount(ss, S.tasks);
-  const msFromStore = milestoneId ? S.milestones.find(ms => ms.id === milestoneId) : null;
-  const msSubsteps = (msFromStore?.substeps || substeps).map(migrateSS);
+  const msSubsteps = substeps.map(migrateSS);
 
   return (
     <div ref={setNodeRef} style={style} className={`ms-ss-card${isDragging ? ' dragging' : ''}`}>
@@ -723,8 +721,13 @@ function SortableSubstep({ ss, expanded, S, taskSensors, substeps=[], milestoneI
             {urgentCount > 0 && <span className="ss-notif-dot">{urgentCount}</span>}
           </span>
         )}
-        {status && status.type === 'overdue' && <span className="ss-status-dot ss-status-overdue">● {status.label}</span>}
-        {status && status.type === 'today' && <span className="ss-status-dot ss-status-today">● {status.label}</span>}
+        {!ss.done && status && (status.overdue > 0 || status.dueToday > 0) && (
+          <span className="ss-status-dot">
+            {status.overdue > 0 && <span className="ss-status-overdue">● {status.overdue} overdue</span>}
+            {status.overdue > 0 && status.dueToday > 0 && <span style={{color:'#9A9A9A',margin:'0 2px',fontSize:10}}>·</span>}
+            {status.dueToday > 0 && <span className="ss-status-today">● {status.dueToday} due today</span>}
+          </span>
+        )}
         <span className="ms-ss-expand">{expanded ? '▲' : '▼'}</span>
       </div>
       <div className={`ms-ss-card-body${expanded ? ' expanded' : ''}`}>
@@ -816,10 +819,9 @@ const SortableLinkedTask = memo(function SortableLinkedTask({ ltObj, lt, tm, tc,
       </label>
       {allSubsteps.length > 1 && (
         <div className="linked-task-move">
-          <select
-            onChange={(e) => { const to = e.target.value; if (to) onMoveTask(ssId, ltObj.taskId, to); }}
+          <select className="ms-card-select"
+            onChange={(e) => { const to = e.target.value; console.log('[MoveTask] SortableLinkedTask onChange', { ssId, taskId: ltObj.taskId, to, allSubstepIds: allSubsteps.map(s => s.id) }); if (to) onMoveTask(ssId, ltObj.taskId, to); }}
             value=""
-            style={{fontSize:11,padding:'2px 4px',borderRadius:4,border:'1px solid var(--border)',background:'var(--surface)',color:'var(--t1)',cursor:'pointer',width:'100%'}}
           >
             <option value="" disabled>⇄ Move to…</option>
             {allSubsteps.filter(s => s.id !== ssId).map(s => (
