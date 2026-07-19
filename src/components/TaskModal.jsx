@@ -503,10 +503,9 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
   const handleMoveTask = async (msId, fromSsId, toSsId) => {
     const tid = task.id || taskIdRef.current;
-    console.log('[MoveTask] TaskModal handleMoveTask', { msId, fromSsId, toSsId, tid, hasMs: !!S.milestones.find(m => m.id === msId), hasFrom: !!S.milestones.find(m => m.id === msId)?.substeps?.find(s => s.id === fromSsId), hasTo: !!S.milestones.find(m => m.id === msId)?.substeps?.find(s => s.id === toSsId) });
-    if (!tid || !msId || !fromSsId || !toSsId || fromSsId === toSsId) { console.log('[MoveTask] early return', { tid, msId, fromSsId, toSsId }); return; }
+    if (!tid || !msId || !fromSsId || !toSsId || fromSsId === toSsId) return;
     const ms = S.milestones.find(m => m.id === msId);
-    if (!ms) { console.log('[MoveTask] milestone not found'); return; }
+    if (!ms) return;
     const updated = {
       ...ms,
       substeps: ms.substeps.map(s => {
@@ -520,8 +519,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
       })
     };
     try {
-      const result = await upsertMilestone(updated);
-      console.log('[MoveTask] upsertMilestone succeeded', { id: result?.id });
+      await upsertMilestone(updated);
     } catch (err) {
       console.error('[MoveTask] upsertMilestone FAILED', err);
     }
@@ -904,7 +902,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                           </button>
                           {link.milestone.substeps.length > 1 && (
                             <select value="" className="ms-card-select"
-                              onChange={(e) => { const to = e.target.value; console.log('[MoveTask] TaskModal card onChange', { msId: link.milestone.id, fromSsId: link.substep.id, to, substepIds: link.milestone.substeps.map(s => s.id) }); if (to) handleMoveTask(link.milestone.id, link.substep.id, to); }}
+                              onChange={(e) => { const to = e.target.value; if (to) handleMoveTask(link.milestone.id, link.substep.id, to); }}
                             >
                               <option value="" disabled>⇄ Move to…</option>
                               {link.milestone.substeps.filter(s => s.id !== link.substep.id).map(s => (

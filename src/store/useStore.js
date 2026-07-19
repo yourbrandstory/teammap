@@ -36,9 +36,6 @@ const taskFromRow = (r) => {
     deleted:!!r.deleted, hidden:!!r.hidden, postingDate:r.posting_date||null,
     createdAt:Number(r.created_at)||Date.now(), updatedAt:Number(r.updated_at)||Date.now(),
   };
-  if (t.subtasks?.length || t.links?.length) {
-    console.log('[taskFromRow] loaded', t.id, { subtasks: t.subtasks.length, links: t.links.length });
-  }
   return t;
 };
 const taskToRow = (t) => ({
@@ -210,7 +207,6 @@ export const useStore = create((set, get) => ({
 
     if (!get().session) { set({ loading:false }); return; }
 
-    console.log('[loadAll] fetching data…');
     const [members, clients] = await Promise.all([
       supabase.from('members').select('*'),
       supabase.from('clients').select('*'),
@@ -233,14 +229,6 @@ export const useStore = create((set, get) => ({
       supabase.from('line_up').select('*'),
     ]);
 
-    console.log('[loadAll] tasks raw from DB:', tasks.data?.length, 'rows');
-    if (tasks.data?.length) {
-      const sample = tasks.data[0];
-      console.log('[loadAll] sample task columns:', Object.keys(sample));
-      console.log('[loadAll] sample subtasks:', sample.subtasks);
-      console.log('[loadAll] sample links:', sample.links);
-    }
-
 
 
     const S = JSON.parse(JSON.stringify(EMPTY_S));
@@ -249,7 +237,6 @@ export const useStore = create((set, get) => ({
     S.links      = (links.data||[]).map(linkFromRow);
     S.tasks      = (tasks.data||[]).map(taskFromRow);
     S.milestones = (milestones.data||[]).map(msFromRow);
-    console.log('[loadAll] milestones loaded:', S.milestones.length, S.milestones.map(m => ({ id: m.id, title: m.title, substepsCount: m.substeps?.length, substepsDetail: m.substeps?.map(s => ({ id: s.id, title: s.title, linkedCount: s.linkedTasks?.length })) })));
     S.tags       = (tags.data||[]).map(tagFromRow);
     S.serviceCategories = (svcCats.data||[]).map(tagFromRow);
 
@@ -325,11 +312,6 @@ export const useStore = create((set, get) => ({
       supabase.from('app_state').upsert({ key: 'navLabels', value: S.navLabels }).then();
     }
 
-    const subtaskCount = S.tasks.reduce((a, t) => a + (t.subtasks?.length || 0), 0);
-    const linkCount = S.tasks.reduce((a, t) => a + (t.links?.length || 0), 0);
-    const tasksWithSubtasks = S.tasks.filter(t => t.subtasks?.length > 0).length;
-    const tasksWithLinks = S.tasks.filter(t => t.links?.length > 0).length;
-    console.log('[loadAll] done', { tasks: S.tasks.length, tasksWithSubtasks, tasksWithLinks, subtasks: subtaskCount, links: linkCount });
 
     // ── Moods: prefer app_state (preserves array order), fall back to moods table, then DMOODS
     if (hasAppStateMoods) {
@@ -411,9 +393,7 @@ export const useStore = create((set, get) => ({
         }
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] tasks + line_up channel subscribed');
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error('[Realtime] tasks channel error — will retry in 10s');
           setTimeout(() => { try { get()._subscribeRealtime(); } catch {} }, 10000);
         } else if (status === 'TIMED_OUT') {
@@ -432,7 +412,6 @@ export const useStore = create((set, get) => ({
       const lastEvent = get()._lastRealtimeEvent;
       // Only sync if no realtime events in the last 25 seconds (subscription may be down)
       if (now - lastEvent < 25000) return;
-      console.log('[Sync] No realtime events recently — fetching latest tasks');
       const { data } = await supabase
         .from('tasks')
         .select('*')
@@ -481,11 +460,7 @@ export const useStore = create((set, get) => ({
         }
       });
     });
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Broadcast] channel ready');
-      }
-    });
+    ch.subscribe((status) => {});
     set({ _bcChannel: ch });
   },
 
@@ -770,8 +745,6 @@ export const useStore = create((set, get) => ({
       S.milestones = i>=0 ? S.milestones.map(x=>x.id===m.id?m:x) : [...S.milestones,m];
     });
     let row = msToRow(m);
-    console.log('[upsertMilestone] table=milestones op='+(isNew?'insert':'update')+' id='+m.id+' title='+m.title);
-    console.log('[upsertMilestone] payload:', JSON.stringify(row, null, 2));
 
     // Iterative retry: if Supabase complains about a missing column, strip it and retry.
     // Keep the smallest number of known-good columns that let the save succeed.
@@ -779,15 +752,12 @@ export const useStore = create((set, get) => ({
     let error = null;
     for (let attempt = 0; attempt < 20; attempt++) {
       const result = await supabase.from('milestones').upsert(row).select();
-      console.log('[upsertMilestone] supabase response:', JSON.stringify({ data: result.data?.length, error: result.error }));
       error = result.error;
       if (!error) {
-        console.log('[upsertMilestone] success (attempt=' + attempt + ') row_id=' + (result.data?.[0]?.id || 'unknown') + ' substeps_count=' + (result.data?.[0]?.substeps?.length ?? 'unknown'));
         if (attempt > 0) {
           // Fallback path was used — encode substeps into description so it survives reload
           const descPayload = JSON.stringify({ substeps: m.substeps || [] });
           await supabase.from('milestones').update({ description: descPayload }).eq('id', m.id);
-          console.log('[upsertMilestone] substeps encoded into description as fallback');
         }
         break;
       }
@@ -809,13 +779,10 @@ export const useStore = create((set, get) => ({
 
     // If all attempts failed and we still have an error, try the bare minimum (old schema)
     if (error) {
-      console.error('[upsertMilestone] all attempts failed, using bare minimum (old schema):', error);
       const bareRow = { id:m.id, name:m.title||m.name||'', description:JSON.stringify({ substeps: m.substeps || [] }), assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
       const fb = await supabase.from('milestones').upsert(bareRow).select();
       if (fb.error) {
         console.error('[upsertMilestone] bare minimum also failed:', fb.error);
-      } else {
-        console.log('[upsertMilestone] saved with bare minimum (substeps stored in description as JSON fallback)');
       }
     }
 

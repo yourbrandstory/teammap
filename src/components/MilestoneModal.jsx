@@ -374,8 +374,6 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       return s;
     });
 
-    console.log('[MoveTask] moving', { taskId, from: fromSsId, to: toSsId, showOnDashboard, newSubsteps });
-
     setM(prev => ({ ...prev, substeps: newSubsteps }));
 
     if (debounceRef.current) {
@@ -863,7 +861,7 @@ const SortableLinkedTask = memo(function SortableLinkedTask({ ltObj, lt, tm, tc,
       {allSubsteps.length > 1 && (
         <div className="linked-task-move">
           <select className="ms-card-select"
-            onChange={(e) => { const to = e.target.value; console.log('[MoveTask] SortableLinkedTask onChange', { ssId, taskId: ltObj.taskId, to, allSubstepIds: allSubsteps.map(s => s.id) }); if (to) onMoveTask(ssId, ltObj.taskId, to); }}
+            onChange={(e) => { const to = e.target.value; if (to) onMoveTask(ssId, ltObj.taskId, to); }}
             value=""
           >
             <option value="" disabled>⇄ Move to…</option>
