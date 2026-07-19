@@ -141,6 +141,29 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
 
   useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
+  // Sync external changes (e.g. task moved via TaskModal's Move to…) into local state
+  useEffect(() => {
+    const msId = milestoneIdRef.current;
+    if (!msId) return;
+    const storeMs = S.milestones.find(x => x.id === msId);
+    if (!storeMs) return;
+    setM(prev => {
+      const storeSubsteps = (storeMs.substeps || []).map(migrateSS);
+      const prevSubsteps = prev.substeps || [];
+      let changed = false;
+      const merged = prevSubsteps.map(ps => {
+        const storeSs = storeSubsteps.find(ss => ss.id === ps.id);
+        if (!storeSs) return ps;
+        const oldJson = JSON.stringify(ps.linkedTasks || []);
+        const newJson = JSON.stringify(storeSs.linkedTasks || []);
+        if (oldJson === newJson) return ps;
+        changed = true;
+        return { ...ps, linkedTasks: (storeSs.linkedTasks || []).map(lt => ({ ...lt })) };
+      });
+      return changed ? { ...prev, substeps: merged } : prev;
+    });
+  }, [milestoneIdRef.current, S.milestones]);
+
   // Keep a ref with the latest field values (no stale closures in debounce callbacks)
   useEffect(() => {
     fieldsRef.current = {
@@ -313,7 +336,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     const cur = fieldsRef.current.substeps || [];
     const newSubsteps = cur.map(s => s.id === ssId ? {
       ...s,
-      linkedTasks: [...(s.linkedTasks||[]), { taskId, showOnDashboard: true }]
+      linkedTasks: [...(s.linkedTasks||[]), { taskId, showOnDashboard: false }]
     } : s);
     setM(prev => ({ ...prev, substeps: newSubsteps }));
     setTaskSearch(null);
@@ -329,17 +352,37 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
   };
 
   const handleMoveTask = (fromSsId, taskId, toSsId) => {
-    console.log('[MoveTask] MilestoneModal handleMoveTask', { fromSsId, taskId, toSsId, hasFrom: !!fieldsRef.current.substeps?.find(s => s.id === fromSsId), hasTo: !!fieldsRef.current.substeps?.find(s => s.id === toSsId) });
-    const cur = fieldsRef.current.substeps || [];
-    let newSubsteps = cur.map(s => s.id === fromSsId ? {
+    const cur = (fieldsRef.current.substeps || []).map(s => ({
       ...s,
-      linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== taskId)
-    } : s);
-    newSubsteps = newSubsteps.map(s => s.id === toSsId ? {
-      ...s,
-      linkedTasks: [...(s.linkedTasks||[]), { taskId, showOnDashboard: true }]
-    } : s);
+      linkedTasks: (s.linkedTasks || []).map(lt => ({ ...lt })),
+    }));
+
+    let showOnDashboard = false;
+    const fromSs = cur.find(s => s.id === fromSsId);
+    if (fromSs) {
+      const ltObj = (fromSs.linkedTasks || []).find(lt => lt.taskId === taskId);
+      if (ltObj) showOnDashboard = ltObj.showOnDashboard;
+    }
+
+    const newSubsteps = cur.map(s => {
+      if (s.id === fromSsId) {
+        return { ...s, linkedTasks: (s.linkedTasks || []).filter(lt => lt.taskId !== taskId) };
+      }
+      if (s.id === toSsId) {
+        return { ...s, linkedTasks: [...(s.linkedTasks || []), { taskId, showOnDashboard }] };
+      }
+      return s;
+    });
+
+    console.log('[MoveTask] moving', { taskId, from: fromSsId, to: toSsId, showOnDashboard, newSubsteps });
+
     setM(prev => ({ ...prev, substeps: newSubsteps }));
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
     doSave(newSubsteps);
   };
 

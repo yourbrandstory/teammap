@@ -4,13 +4,6 @@
 -- RLS follows adtrack-hub's owns_account() pattern with Teammap's admin/manager roles.
 -- ============================================================================
 
--- helper: check access (admin/manager can see everything)
-CREATE OR REPLACE FUNCTION public.sg_has_access(_account_id uuid)
-RETURNS boolean LANGUAGE sql STABLE AS $$
-  SELECT EXISTS(SELECT 1 FROM public.signal_accounts WHERE id = _account_id)
-    AND (is_admin() OR is_manager())
-$$;
-
 -- accounts
 CREATE TABLE IF NOT EXISTS public.signal_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -26,6 +19,15 @@ CREATE POLICY "sg accounts access" ON public.signal_accounts
   FOR ALL TO authenticated
   USING (is_admin() OR is_manager())
   WITH CHECK (is_admin() OR is_manager());
+
+-- helper: check access (admin/manager can see everything)
+-- NOTE: not used by current RLS policies (they use is_admin()/is_manager() directly),
+-- but kept for potential future use and API-level checks.
+CREATE OR REPLACE FUNCTION public.sg_has_access(_account_id uuid)
+RETURNS boolean LANGUAGE sql STABLE AS $$
+  SELECT EXISTS(SELECT 1 FROM public.signal_accounts WHERE id = _account_id)
+    AND (is_admin() OR is_manager())
+$$;
 
 -- tag master
 CREATE TABLE IF NOT EXISTS public.signal_tag_master (

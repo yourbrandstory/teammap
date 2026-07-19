@@ -6,6 +6,7 @@ import MemberKanban from './MemberKanban';
 import MemberTasks from './MemberTasks';
 import MilestonesView from './MilestonesView';
 import SMCalendar from './SMCalendar';
+import Signal from './Signal';
 import ListView from './ListView';
 import Toast from '../components/Toast';
 
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'pg', label: 'Playground', icon: '◢' },
   { id: 'ms', label: 'Milestones', icon: '◆' },
   { id: 'lv', label: 'List View', icon: '📋' },
+  { id: 'sg', label: 'Signal', icon: '📡' },
 ];
 
 export default function MemberView() {
@@ -113,6 +115,7 @@ export default function MemberView() {
       <div className="member-tab-content" style={{ display: tab === 'pg' ? '' : 'none' }}><MemberPlayground /></div>
       <div className="member-tab-content" style={{ display: tab === 'ms' ? '' : 'none' }}><MilestonesView memberFilter={memberId} hideNewButton /></div>
       <div className="member-tab-content" style={{ display: tab === 'lv' ? '' : 'none' }}><ListView memberFilter={memberId} /></div>
+      <div className="member-tab-content" style={{ display: tab === 'sg' ? '' : 'none' }}><Signal /></div>
       <Toast />
     </div>
   );

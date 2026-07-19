@@ -1,0 +1,12 @@
+-- NOTE: profiles.role was previously overwritten twice by Signal-related
+-- migrations (20260713170000 promoted everyone to admin, 20260714020000
+-- reverted everyone to member). Both were mistakes.
+--
+-- Signal access is now handled via MemberView.jsx (tab in TABS array) and
+-- signal_* table RLS (USING(true) WITH CHECK(true) for authenticated).
+-- profiles.role is NOT involved in Signal access control.
+--
+-- DO NOT modify profiles.role as a side effect of fixing Signal permissions.
+-- profiles.role governs: is_admin(), is_manager(), inline session.role
+-- checks in TaskDashboard, LineUp, TaskModal, DelegatedView, statusUtils,
+-- and milestone/task write RLS policies — none of which relate to Signal.

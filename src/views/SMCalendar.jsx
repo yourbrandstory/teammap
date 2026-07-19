@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useStore, sel } from '../store/useStore';
 import { MOOD_PASTEL } from '../lib/constants';
 import { getNotesText } from '../utils/notesUtils';
@@ -11,6 +11,7 @@ const MINI_DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const ACCENT = '#D85A30';
 const NAVY_BG = '#26215C';
 const NAVY_TEXT = '#EEEDFE';
+const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function monthDays(year, month) {
   const first = new Date(year, month, 1);
@@ -29,6 +30,11 @@ function dateStr(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+function parseDateStr(ds) {
+  const [y, m, d] = ds.split('-').map(Number);
+  return { y, m: m - 1, d };
+}
+
 function fmtDate(ds) {
   if (!ds) return '';
   const d = new Date(ds + 'T12:00:00');
@@ -45,6 +51,7 @@ export default function SMCalendar() {
   const S = useStore(s => s.S);
 
   const [baseDate, setBaseDate] = useState(() => new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState(todayDate);
   const [modal, setModal] = useState(null);
   const [memberFilter, setMemberFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
@@ -149,11 +156,23 @@ export default function SMCalendar() {
 
   const prevMonth = () => setBaseDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   const nextMonth = () => setBaseDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
-  const goToday = () => setBaseDate(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+  const dateStripRef = useRef(null);
+
+  const goToday = () => {
+    setBaseDate(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+    setSelectedDate(todayDate);
+  };
 
   const goToDate = useCallback((y, m) => {
     setBaseDate(new Date(y, m, 1));
   }, []);
+
+  // Auto-scroll date strip to selected date on mount / month change
+  useEffect(() => {
+    if (!dateStripRef.current) return;
+    const el = dateStripRef.current.querySelector(`[data-date="${selectedDate}"]`);
+    if (el) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'instant' });
+  }, [selectedDate, baseDate]);
 
   const toggleMember = useCallback((id) => {
     setMemberFilter(prev => prev === id ? '' : id);
@@ -236,23 +255,32 @@ export default function SMCalendar() {
               {socialClients.length === 0 ? (
                 <div className="smc-side-empty">No clients tagged Social yet — assign categories in Settings</div>
               ) : (
-                socialClients.map(c => {
-                  const active = clientFilter === c.id;
-                  const hidden = hiddenClients.includes(c.id);
-                  return (
-                    <div
-                      key={c.id}
-                      className={`smc-side-row${active ? ' smc-side-active' : ''}`}
-                    >
-                      <span className="smc-side-dot" style={{ background: c.color || 'var(--t3)' }} />
-                      <span className="smc-side-name" onClick={() => setClientFilter(prev => prev === c.id ? '' : c.id)}>{c.name}</span>
-                      <span
-                        className={`smc-side-hide-btn${hidden ? ' hidden' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); toggleHideClient(c.id); }}
-                      >{hidden ? 'Hidden' : 'Hide'}</span>
-                    </div>
-                  );
-                })
+                <>
+                  <div
+                    className={`smc-side-row${!clientFilter ? ' smc-side-active' : ''}`}
+                    onClick={() => setClientFilter('')}
+                  >
+                    <span className="smc-side-name">All clients</span>
+                  </div>
+                  {socialClients.map(c => {
+                    const active = clientFilter === c.id;
+                    const hidden = hiddenClients.includes(c.id);
+                    return (
+                      <div
+                        key={c.id}
+                        className={`smc-side-row${active ? ' smc-side-active' : ''}`}
+                        onClick={() => setClientFilter(prev => prev === c.id ? '' : c.id)}
+                      >
+                        <span className="smc-side-dot" style={{ background: c.color || 'var(--t3)' }} />
+                        <span className="smc-side-name">{c.name}</span>
+                        <span
+                          className={`smc-side-hide-btn${hidden ? ' hidden' : ''}`}
+                          onClick={(e) => { e.stopPropagation(); toggleHideClient(c.id); }}
+                        >{hidden ? 'Hidden' : 'Hide'}</span>
+                      </div>
+                    );
+                  })}
+                </>
               )}
             </div>
           </div>
@@ -452,6 +480,145 @@ export default function SMCalendar() {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* ── MOBILE VIEW ── */}
+      <div className="smc-mob-view">
+        {/* Execution/Posting toggle */}
+        <div className="smc-mob-toggle-row">
+          <div className="smc-view-toggle">
+            <span className={`smc-view-btn${view === 'execution' ? ' active' : ''}`} onClick={() => setView('execution')}>Execution</span>
+            <span className={`smc-view-btn${view === 'posting' ? ' active' : ''}`} onClick={() => setView('posting')}>Posting</span>
+          </div>
+          <button className="smc-soft-btn smc-today-btn" onClick={goToday}>Today</button>
+        </div>
+
+        {/* Date strip */}
+        <div className="smc-date-strip" ref={dateStripRef}>
+          {(() => {
+            const y = baseDate.getFullYear();
+            const m = baseDate.getMonth();
+            const lastDay = new Date(y, m + 1, 0).getDate();
+            return Array.from({ length: lastDay }, (_, i) => {
+              const ds = dateStr(y, m, i + 1);
+              const d = new Date(ds + 'T12:00:00');
+              const isT = ds === todayDate;
+              const isSel = ds === selectedDate;
+              return (
+                <button
+                  key={ds}
+                  data-date={ds}
+                  className={`smc-date-chip${isT ? ' today' : ''}${isSel ? ' selected' : ''}`}
+                  onClick={() => setSelectedDate(ds)}
+                >
+                  <span className="smc-date-dow">{SHORT_DAYS[d.getDay()]}</span>
+                  <span className="smc-date-num">{i + 1}</span>
+                </button>
+              );
+            });
+          })()}
+        </div>
+
+        {/* Client filter chips */}
+        <div className="smc-mob-filter-row">
+          <button className={`smc-flt${!clientFilter ? ' smc-flt-on' : ''}`} onClick={() => setClientFilter('')}>All</button>
+          {socialClients.map(c => {
+            const active = clientFilter === c.id;
+            return (
+              <button
+                key={c.id}
+                className={`smc-flt${active ? ' smc-flt-on' : ''}`}
+                onClick={() => setClientFilter(prev => prev === c.id ? '' : c.id)}
+              >
+                <span className="smc-mob-client-dot" style={{ background: c.color || 'var(--t3)' }} />
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Member filter chips */}
+        <div className="smc-mob-filter-row">
+          <button className={`smc-flt${!memberFilter ? ' smc-flt-on' : ''}`} onClick={() => setMemberFilter('')}>All members</button>
+          {S.members.map(m => (
+            <button key={m.id} className={`smc-flt${memberFilter === m.id ? ' smc-flt-on' : ''}`} onClick={() => toggleMember(m.id)}>
+              {m.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Selected day header */}
+        <div className="smc-mob-day-header">
+          <span className="smc-mob-day-title">{new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+          <span className="smc-mob-day-count">
+            {(view === 'execution' ? tasksByDate[selectedDate] : tasksByPostingDate[selectedDate])?.length || 0} task{((view === 'execution' ? tasksByDate[selectedDate] : tasksByPostingDate[selectedDate])?.length || 0) !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* Stacked task cards */}
+        <div className="smc-mob-tasks">
+          {(() => {
+            const dayMap = view === 'execution' ? tasksByDate : tasksByPostingDate;
+            const dayTasks = dayMap[selectedDate] || [];
+            if (dayTasks.length === 0) {
+              return <div className="smc-mob-empty">No tasks for this day</div>;
+            }
+            return dayTasks.map(t => {
+              const p = moodPastel(t.mood);
+              const moodColor = p?.text || 'var(--t3)';
+              const theMood = t.mood ? S.moods.find(x => x.id === t.mood) : null;
+              const client = t.clientId ? sel.gc(S, t.clientId) : null;
+              const hasLinks = t.links?.length > 0;
+              const hasSubtasks = t.subtasks?.length > 0;
+              const subTotal = t.subtasks?.length || 0;
+              const subDone = t.subtasks?.filter(s => s.done).length || 0;
+              const hasNotes = getNotesText(t.notes).length > 0;
+              const CIRC = 2 * Math.PI * 13;
+              const hasIcons = hasLinks || hasSubtasks || hasNotes;
+              return (
+                <div key={t.id} className="smc-mob-card" style={{ borderLeftColor: moodColor }} onClick={() => openTask(t)}>
+                  <div className="smc-mob-card-top">
+                    {theMood && <span className="mood-tag" style={{ background: p?.bg || 'var(--s2)', color: moodColor }}>{theMood.icon} {theMood.label}</span>}
+                    {t.status && <span className="sc-status-tag" style={{ background: STB[t.status], color: STC[t.status] }}>{t.status}</span>}
+                    {view === 'posting' && <span className="posting-badge">Posting</span>}
+                  </div>
+                  <div className="smc-mob-card-name">{t.name}</div>
+                  <div className="smc-mob-card-meta">
+                    {t.assignedTo?.map(mId => {
+                      const member = sel.gm(S, mId);
+                      return member ? <span key={mId} className="assignee-text">{member.name}</span> : null;
+                    })}
+                    {t.assignedTo?.length > 0 && client && <span className="dot-sep" />}
+                    {client && <span className="client-text" style={{ color: client.color || 'var(--t2)' }}>{client.name}</span>}
+                    {t.postingDate && <span className="pd-capsule" title={t.postingDate}>{fmtDate(t.postingDate)}</span>}
+                  </div>
+                  {hasIcons && (
+                    <div className="task-icons">
+                      {hasSubtasks && (
+                        <span className="circ-wrap" style={{ color: moodColor }}>
+                          <svg viewBox="0 0 30 30" width="18" height="18" style={{ display: 'block' }}>
+                            <circle cx="15" cy="15" r="13" fill="none" stroke="var(--s2)" strokeWidth="3.5" />
+                            <circle cx="15" cy="15" r="13" fill="none" stroke="currentColor" strokeWidth="3.5"
+                              strokeDasharray={CIRC} strokeDashoffset={subTotal > 0 ? CIRC * (1 - subDone / subTotal) : CIRC}
+                              strokeLinecap="round" transform="rotate(-90 15 15)" />
+                          </svg>
+                          <span className="circ-label">{subDone}/{subTotal}</span>
+                        </span>
+                      )}
+                      {hasLinks && (
+                        <span className="icon-wrap" onClick={e => { e.stopPropagation(); window.open(t.links[0].url, '_blank'); }}>
+                          <i className="link-icon">🔗</i>
+                          <span className="link-tooltip">{t.links[0].url}</span>
+                        </span>
+                      )}
+                      {hasNotes && <i className="notes-icon">📝</i>}
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
 

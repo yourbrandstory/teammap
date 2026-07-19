@@ -892,6 +892,7 @@ td:hover .pg-cell-actions{display:flex}
 .smc-today-tag{padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
 
 /* ── SETTINGS REDESIGN ─────────────────────────────────────── */
+.smc-mob-view{display:none}
 .st-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:20px}
 .st-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl2);overflow:hidden;display:flex;flex-direction:column;max-height:360px}
 .st-panel-head{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -1339,38 +1340,47 @@ td:hover .pg-cell-actions{display:flex}
   /* SM Calendar — mobile restructure */
   .smc-outer{padding:8px;gap:4px}
   .smc-toggle-row{display:none}
-  .smc-body{grid-template-columns:1fr;gap:8px}
-  .smc-left{display:flex;flex-direction:column;gap:8px;overflow:visible}
-  .smc-left.smc-collapsed{display:flex}
-  .smc-card{padding:8px 10px}
-  .smc-mm-head-desk{display:none}
-  .smc-mm-head-mob{display:flex;gap:4px}
-  .smc-mm-head-mob .smc-mm-label{font-size:11px;flex:1;text-align:center;min-width:0}
-  .smc-mm-grid{display:none}
-  .smc-mm-grid.open{display:grid}
+  .smc-body{display:none!important}
+  .smc-left{display:none!important}
+  .smc-right{display:none!important}
+  .smc-mob-view{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1}
 
-  /* Client filters → horizontal scroll chips */
-  .smc-side-list{display:flex;flex-direction:row;overflow-x:auto;flex-wrap:nowrap;gap:6px;padding:4px 0;scrollbar-width:none}
-  .smc-side-list::-webkit-scrollbar{display:none}
-  .smc-side-row{flex-shrink:0;white-space:nowrap;padding:5px 10px;border-radius:20px;border:1.5px solid transparent}
-  .smc-side-row.smc-side-active{border-color:#26215C}
-  .smc-side-dot{width:6px;height:6px}
-  .smc-side-name{font-size:11px}
-  .smc-side-label{font-size:9px;margin-bottom:4px}
+  /* Mobile toggle row */
+  .smc-mob-toggle-row{display:flex;align-items:center;gap:8px;flex-shrink:0}
 
-  /* Main calendar: hide grid, keep header */
-  .smc-dow,.smc-grid,.smc-posting-empty{display:none}
-  .smc-main{border-radius:12px;padding:10px}
-  .smc-mh{flex-wrap:wrap;gap:6px;margin-bottom:0}
+  /* Date strip */
+  .smc-date-strip{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:4px 0;flex-shrink:0}
+  .smc-date-strip::-webkit-scrollbar{display:none}
+  .smc-date-chip{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px;border-radius:12px;border:1.5px solid transparent;background:var(--surface);cursor:pointer;flex-shrink:0;scroll-snap-align:center;min-width:48px;transition:all .15s}
+  .smc-date-chip.today{border-color:var(--accent)}
+  .smc-date-chip.selected{background:var(--accent);border-color:var(--accent)}
+  .smc-date-chip.selected .smc-date-dow,.smc-date-chip.selected .smc-date-num{color:#fff}
+  .smc-date-dow{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;line-height:1}
+  .smc-date-num{font-size:16px;font-weight:700;color:var(--text);line-height:1}
 
-  /* Member filter chips → horizontal scroll */
-  .smc-mh-chips{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;width:100%;margin-left:0;padding-bottom:4px}
-  .smc-mh-chips::-webkit-scrollbar{display:none}
-  .smc-flt{flex-shrink:0}
+  /* Mobile filter rows */
+  .smc-mob-filter-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;flex-shrink:0}
+  .smc-mob-filter-row::-webkit-scrollbar{display:none}
+  .smc-mob-client-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
 
-  /* Right panel: full width */
-  .smc-right{width:100%;overflow:visible}
-  .smc-right.smc-collapsed{display:flex}
+  /* Selected day header */
+  .smc-mob-day-header{display:flex;align-items:baseline;gap:8px;padding:4px 0;flex-shrink:0}
+  .smc-mob-day-title{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+  .smc-mob-day-count{font-size:11px;color:var(--t3);font-weight:600}
+
+  /* Stacked task cards */
+  .smc-mob-tasks{display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;padding-bottom:16px}
+  .smc-mob-card{background:var(--surface);border-radius:12px;padding:12px 14px;cursor:pointer;border-left:4px solid var(--t3);transition:background .12s}
+  .smc-mob-card:active{background:var(--s2)}
+  .smc-mob-card-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+  .smc-mob-card-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px}
+  .smc-mob-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .smc-mob-card-meta .assignee-text{font-size:11px;color:var(--t2)}
+  .smc-mob-card-meta .dot-sep{width:3px;height:3px;border-radius:50%;background:var(--t3)}
+  .smc-mob-card-meta .client-text{font-size:11px;font-weight:600}
+  .smc-mob-card-meta .pd-capsule{font-size:10px}
+  .smc-mob-card .task-icons{margin-top:4px}
+  .smc-mob-empty{text-align:center;padding:32px 16px;font-size:13px;color:var(--t3);background:var(--surface);border-radius:12px}
 
   /* Playground */
   .pg-topbar{flex-wrap:nowrap;padding:8px 10px;gap:4px}

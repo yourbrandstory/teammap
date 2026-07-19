@@ -449,7 +449,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
       ...ms,
       substeps: ms.substeps.map(s => s.id === linkSsId ? {
         ...s,
-        linkedTasks: [...(s.linkedTasks||[]), { taskId: tid, showOnDashboard: true }]
+        linkedTasks: [...(s.linkedTasks||[]), { taskId: tid, showOnDashboard: false }]
       } : s)
     };
     await upsertMilestone(updated);
@@ -514,7 +514,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
           return { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== tid) };
         }
         if (s.id === toSsId) {
-          return { ...s, linkedTasks: [...(s.linkedTasks||[]), { taskId: tid, showOnDashboard: true }] };
+          return { ...s, linkedTasks: [...(s.linkedTasks||[]), { taskId: tid, showOnDashboard: false }] };
         }
         return s;
       })

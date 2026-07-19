@@ -58,7 +58,14 @@ const clientFromRow = (r) => ({ id:r.id, name:r.name, industry:r.industry||'', c
 const clientToRow   = (c) => ({ id:c.id, name:c.name, industry:c.industry||'', color:c.color, ord:c.order ?? 0, service_category_ids:c.serviceCategoryIds||[] });
 const linkFromRow   = (r) => ({ id:r.id, memberId:r.member_id, clientId:r.client_id, roles:r.roles||[] });
 const linkToRow     = (l) => ({ id:l.id, member_id:l.memberId, client_id:l.clientId, roles:l.roles||[] });
-const msFromRow     = (r) => ({ id:r.id, title:r.title||r.name||'', mood:r.mood||r.color||'', assignedTo:r.assigned_to||[], clientId:r.client_id||'', date:r.date||'', deadline:r.deadline||'', substeps:r.substeps||[], displayMode:r.display_mode||'daily', displayDays:r.display_days||[], deleted:!!r.deleted, notes:r.notes||'', createdAt:Number(r.created_at)||Date.now(), updatedAt:Number(r.updated_at)||Date.now() });
+const msFromRow     = (r) => {
+  let substeps = r.substeps || [];
+  // Fallback: if substeps column is missing in DB but we saved them JSON-encoded in description
+  if (!substeps.length && r.description) {
+    try { const parsed = JSON.parse(r.description); if (Array.isArray(parsed.substeps)) substeps = parsed.substeps; } catch {}
+  }
+  return { id:r.id, title:r.title||r.name||'', mood:r.mood||r.color||'', assignedTo:r.assigned_to||[], clientId:r.client_id||'', date:r.date||'', deadline:r.deadline||'', substeps, displayMode:r.display_mode||'daily', displayDays:r.display_days||[], deleted:!!r.deleted, notes:r.notes||'', createdAt:Number(r.created_at)||Date.now(), updatedAt:Number(r.updated_at)||Date.now() };
+};
 const msToRow       = (m) => ({ id:m.id, name:m.title||m.name||'', title:m.title||'', mood:m.mood||'', assigned_to:m.assignedTo||[], client_id:m.clientId||null, date:m.date||'', deadline:m.deadline||null, substeps:m.substeps||[], display_mode:m.displayMode||'daily', display_days:m.displayDays||[], deleted:!!m.deleted, notes:m.notes||'', description:m.description||'', color:m.mood||m.color||'', created_at:m.createdAt||Date.now(), updated_at:m.updatedAt||Date.now() });
 const tagFromRow    = (r) => ({ id:r.id, label:r.label, color:r.color });
 const tagToRow      = (t) => ({ id:t.id, label:t.label, color:t.color });
@@ -242,6 +249,7 @@ export const useStore = create((set, get) => ({
     S.links      = (links.data||[]).map(linkFromRow);
     S.tasks      = (tasks.data||[]).map(taskFromRow);
     S.milestones = (milestones.data||[]).map(msFromRow);
+    console.log('[loadAll] milestones loaded:', S.milestones.length, S.milestones.map(m => ({ id: m.id, title: m.title, substepsCount: m.substeps?.length, substepsDetail: m.substeps?.map(s => ({ id: s.id, title: s.title, linkedCount: s.linkedTasks?.length })) })));
     S.tags       = (tags.data||[]).map(tagFromRow);
     S.serviceCategories = (svcCats.data||[]).map(tagFromRow);
 
@@ -761,44 +769,56 @@ export const useStore = create((set, get) => ({
       const i=S.milestones.findIndex(x=>x.id===m.id);
       S.milestones = i>=0 ? S.milestones.map(x=>x.id===m.id?m:x) : [...S.milestones,m];
     });
-    const row = msToRow(m);
+    let row = msToRow(m);
     console.log('[upsertMilestone] table=milestones op='+(isNew?'insert':'update')+' id='+m.id+' title='+m.title);
     console.log('[upsertMilestone] payload:', JSON.stringify(row, null, 2));
-    let { error } = await supabase.from('milestones').upsert(row).select();
-    if (error && (error.code === '42703' || /column .+ does not exist/i.test(error.message))) {
+
+    // Iterative retry: if Supabase complains about a missing column, strip it and retry.
+    // Keep the smallest number of known-good columns that let the save succeed.
+    // "description" is the only extras column guaranteed by the original schema.
+    let error = null;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const result = await supabase.from('milestones').upsert(row).select();
+      console.log('[upsertMilestone] supabase response:', JSON.stringify({ data: result.data?.length, error: result.error }));
+      error = result.error;
+      if (!error) {
+        console.log('[upsertMilestone] success (attempt=' + attempt + ') row_id=' + (result.data?.[0]?.id || 'unknown') + ' substeps_count=' + (result.data?.[0]?.substeps?.length ?? 'unknown'));
+        if (attempt > 0) {
+          // Fallback path was used — encode substeps into description so it survives reload
+          const descPayload = JSON.stringify({ substeps: m.substeps || [] });
+          await supabase.from('milestones').update({ description: descPayload }).eq('id', m.id);
+          console.log('[upsertMilestone] substeps encoded into description as fallback');
+        }
+        break;
+      }
+      const isColumnError = error.code === '42703' || /column .+ does not exist/i.test(error.message);
+      if (!isColumnError) {
+        console.error('[upsertMilestone] non-column error, giving up:', error);
+        break;
+      }
       const colMatch = error.message.match(/column "([^"]+)"/);
       const badCol = colMatch?.[1];
-      if (badCol && row[badCol] !== undefined) {
-        console.warn('[upsertMilestone] column "'+badCol+'" missing, retrying without it');
-        const { [badCol]: _, ...rest } = row;
-        const retry = await supabase.from('milestones').upsert(rest).select();
-        error = retry.error;
-        if (!retry.error) {
-          console.log('[upsertMilestone] saved without column "'+badCol+'"');
-        } else if (retry.error.code === '42703' || /column .+ does not exist/i.test(retry.error.message)) {
-          console.warn('[upsertMilestone] multiple columns missing, falling back to old schema');
-          const oldRow = { id:m.id, name:m.title||m.name||'', description:m.description||'', assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
-          const fb = await supabase.from('milestones').upsert(oldRow).select();
-          error = fb.error;
-          if (!fb.error) {
-            console.log('[upsertMilestone] saved with old schema (title/substeps not persisted until migration runs)');
-          }
-        }
-      } else {
-        console.warn('[upsertMilestone] new-schema columns missing, falling back to old schema');
-        const oldRow = { id:m.id, name:m.title||m.name||'', description:m.description||'', assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
-        const fb = await supabase.from('milestones').upsert(oldRow).select();
-        error = fb.error;
-        if (!fb.error) {
-          console.log('[upsertMilestone] saved with old schema (title/substeps not persisted until migration runs)');
-        }
+      if (!badCol || row[badCol] === undefined) {
+        console.warn('[upsertMilestone] cannot determine bad column, giving up:', error.message);
+        break;
       }
-    } else if (error) {
-      console.error('[upsertMilestone] error.code:', error.code);
-      console.error('[upsertMilestone] error.message:', error.message);
-      console.error('[upsertMilestone] error.details:', error.details);
-      console.error('[upsertMilestone] error.hint:', error.hint);
+      console.warn('[upsertMilestone] attempt=' + attempt + ' column "' + badCol + '" missing, stripping it');
+      const { [badCol]: _, ...rest } = row;
+      row = rest;
     }
+
+    // If all attempts failed and we still have an error, try the bare minimum (old schema)
+    if (error) {
+      console.error('[upsertMilestone] all attempts failed, using bare minimum (old schema):', error);
+      const bareRow = { id:m.id, name:m.title||m.name||'', description:JSON.stringify({ substeps: m.substeps || [] }), assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
+      const fb = await supabase.from('milestones').upsert(bareRow).select();
+      if (fb.error) {
+        console.error('[upsertMilestone] bare minimum also failed:', fb.error);
+      } else {
+        console.log('[upsertMilestone] saved with bare minimum (substeps stored in description as JSON fallback)');
+      }
+    }
+
     return m;
   },
   delMilestone: async (id) => {

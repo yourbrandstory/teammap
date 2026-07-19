@@ -193,13 +193,19 @@ export default function useSignal() {
       .select('*')
       .order('name');
     if (err) { setError(err.message); setLoading(false); return; }
-    const list = (data || []) as SignalAccount[];
+    let list = (data || []) as SignalAccount[];
+    if (list.length === 0) {
+      const { data: created } = await supabase
+        .from('signal_accounts')
+        .insert({ name: 'Homepick', is_default: true })
+        .select('*')
+        .single();
+      if (created) list = [created as SignalAccount];
+    }
     setAccounts(list);
     if (list.length > 0) {
-      const saved = useUIStore.getState().viewStates?.signal?.activeAccountId;
       const defaultAcct = list.find(a => a.is_default) || list[0];
-      const target = saved && list.find(a => a.id === saved) ? saved : defaultAcct.id;
-      setActiveAccountId(target);
+      setActiveAccountId(defaultAcct.id);
     } else {
       setLoading(false);
     }
@@ -288,6 +294,16 @@ export default function useSignal() {
   const refreshAccounts = useCallback(async () => {
     await loadAccounts();
   }, []);
+
+  const refreshMetaConn = useCallback(async () => {
+    if (!activeAccountId) return;
+    const { data } = await supabase
+      .from('signal_meta_connections')
+      .select('account_id,ad_account_id,api_version,results_action_type,updated_at')
+      .eq('account_id', activeAccountId)
+      .maybeSingle();
+    setMetaConn(data ? (data as SignalMetaConnection) : null);
+  }, [activeAccountId]);
 
   // Analytics aggregation
   const analyticsRows = useMemo((): AnalyticsRow[] => {
@@ -420,7 +436,9 @@ export default function useSignal() {
       results: a.results + r.results,
     }), { spend: 0, purchases: 0, orders: 0, sessions: 0, order_value: 0, impressions: 0, clicks: 0, results: 0 });
 
-    const topAd = analyticsRows.length > 0 ? analyticsRows.reduce((a, b) => a.spend > b.spend ? a : b) : null;
+    const topAd = analyticsRows.filter(r => r.spend > 0).length > 0
+      ? analyticsRows.filter(r => r.spend > 0).reduce((a, b) => a.roas > b.roas ? a : b)
+      : null;
 
     return {
       ...total,
@@ -434,7 +452,7 @@ export default function useSignal() {
 
   return {
     accounts, activeAccountId, setActiveAccountId: handleSetActiveAccount,
-    refreshAccounts,
+    refreshAccounts, refreshMetaConn,
     campaigns, ads, refreshCampaignsAndAds,
     metaConn,
     tags,
