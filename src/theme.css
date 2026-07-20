@@ -861,11 +861,11 @@ td:hover .pg-cell-actions{display:flex}
 .smc-cell-tasks{display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto}
 .smc-cell-tasks::-webkit-scrollbar{width:3px}
 .smc-cell-tasks::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
-.task{border-radius:8px;padding:7px 8px;cursor:pointer;border-left:3px solid var(--t3);background:var(--surface);transition:background .12s;margin-bottom:4px}
+.task{border-radius:8px;padding:7px 8px;cursor:pointer;border-left:3px solid var(--t3);background:var(--surface);transition:background .12s;margin-bottom:4px;overflow:hidden}
 .task:hover{background:rgba(0,0,0,.025)}
 .task-top{display:flex;align-items:center;gap:4px;margin-bottom:3px;min-width:0}
 .mood-tag{font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap;flex-shrink:0}
-.task-name{font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.task-name{display:block;font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .task-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:5px}
 .assignee-text{font-size:9.5px;color:var(--t2)}
 .dot-sep{width:2px;height:2px;border-radius:50%;background:var(--t3);flex-shrink:0}
