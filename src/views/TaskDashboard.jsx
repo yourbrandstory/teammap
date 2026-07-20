@@ -19,7 +19,7 @@ function isTaskHiddenBySubstep(taskId, milestones) {
   if (!milestones) return false;
   for (const ms of milestones) {
     if (ms.deleted) continue;
-    for (const ss of (ms.substeps || [])) {
+    for (const ss of (ms.substeps || []).filter(Boolean)) {
       const link = (ss.linkedTasks || []).find(lt => lt.taskId === taskId);
       if (link) {
         return !link.showOnDashboard;
@@ -388,7 +388,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
       <div className="tcolb">
         {noMoodMilestones.map(ms => {
           const total = ms.substeps.length;
-          const done = ms.substeps.filter(s => s.done).length;
+          const done = (ms.substeps || []).filter(Boolean).filter(s => s.done).length;
           const pct = total ? Math.round(done/total*100) : 0;
           const dlClass = getDeadlineClass(ms.deadline);
           const dlLabel = getDeadlineLabel(ms.deadline);
@@ -423,7 +423,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
         })}
         {msForMember.filter(ms => ms.mood && hiddenMoods.some(m => m.id === ms.mood)).map(ms => {
           const total = ms.substeps.length;
-          const done = ms.substeps.filter(s => s.done).length;
+          const done = (ms.substeps || []).filter(Boolean).filter(s => s.done).length;
           const pct = total ? Math.round(done/total*100) : 0;
           const dlClass = getDeadlineClass(ms.deadline);
           const dlLabel = getDeadlineLabel(ms.deadline);
@@ -542,7 +542,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
               <div className="msec-tasks">
                 {moodMilestones.map(ms => {
                   const mTotal = ms.substeps.length;
-                  const mDone = ms.substeps.filter(s => s.done).length;
+                  const mDone = (ms.substeps || []).filter(Boolean).filter(s => s.done).length;
                   const mPct = mTotal ? Math.round(mDone/mTotal*100) : 0;
                   const mDlClass = getDeadlineClass(ms.deadline);
                   const mDlLabel = getDeadlineLabel(ms.deadline);
@@ -686,7 +686,7 @@ function getMilestoneSummary(milestone, allTasks) {
   let dueToday = 0;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  for (const ss of (milestone.substeps || [])) {
+  for (const ss of (milestone.substeps || []).filter(Boolean)) {
     for (const link of (ss.linkedTasks || [])) {
       const task = allTasks.find(t => t.id === link.taskId);
       if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
@@ -749,7 +749,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
     <div className="td-mob-col-inner">
         {noMoodMilestones.map(ms => {
           const total = ms.substeps.length;
-          const done = ms.substeps.filter(s => s.done).length;
+          const done = (ms.substeps || []).filter(Boolean).filter(s => s.done).length;
           const pct = total ? Math.round(done/total*100) : 0;
           const dlClass = getDeadlineClass(ms.deadline);
           const dlLabel = getDeadlineLabel(ms.deadline);
@@ -784,7 +784,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
         })}
         {msForMember.filter(ms => ms.mood && hiddenMoods.some(m => m.id === ms.mood)).map(ms => {
           const total = ms.substeps.length;
-          const done = ms.substeps.filter(s => s.done).length;
+          const done = (ms.substeps || []).filter(Boolean).filter(s => s.done).length;
           const pct = total ? Math.round(done/total*100) : 0;
           const dlClass = getDeadlineClass(ms.deadline);
           const dlLabel = getDeadlineLabel(ms.deadline);
@@ -904,7 +904,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
             <div className="msec-tasks" style={{maxHeight:isHero?160:isImp?120:80,overflowY:'auto'}}>
               {moodMilestones.map(ms => {
                 const mTotal = ms.substeps.length;
-                const mDone = ms.substeps.filter(s => s.done).length;
+                const mDone = (ms.substeps || []).filter(Boolean).filter(s => s.done).length;
                 const mPct = mTotal ? Math.round(mDone/mTotal*100) : 0;
                 const mDlClass = getDeadlineClass(ms.deadline);
                 const mDlLabel = getDeadlineLabel(ms.deadline);

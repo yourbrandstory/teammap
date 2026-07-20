@@ -121,13 +121,14 @@ export default function MilestonesView({ memberFilter, hideNewButton }) {
         {filteredMilestones.map(ms => {
           const dlClass = getDeadlineClass(ms.deadline);
           const dlLabel = getDeadlineLabel(ms.deadline);
-          const total = ms.substeps.length;
-          const done = ms.substeps.filter(s => s.done).length;
+          const safeSS = (ms.substeps || []).filter(Boolean);
+          const total = safeSS.length;
+          const done = safeSS.filter(s => s.done).length;
           const pct = total ? Math.round(done / total * 100) : 0;
           const client = ms.clientId ? sel.gc(S, ms.clientId) : null;
           const mood = ms.mood ? sel.gmood(S, ms.mood) : null;
-          const visibleSS = ms.substeps.slice(0, 3);
-          const moreSS = ms.substeps.length - 3;
+          const visibleSS = safeSS.slice(0, 3);
+          const moreSS = safeSS.length - 3;
 
           return (
             <div key={ms.id} className="mv-card" onClick={() => setModal(ms)}>

@@ -256,8 +256,9 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     scheduleSave();
   }, [m, scheduleSave, flushSave]);
 
-  const subTotal = m.substeps.length;
-  const subDone = m.substeps.filter(s => s.done).length;
+  const safeSS = (m.substeps || []).filter(Boolean);
+  const subTotal = safeSS.length;
+  const subDone = safeSS.filter(s => s.done).length;
   const subPct = subTotal ? Math.round(subDone / subTotal * 100) : 0;
 
   const allTasks = useMemo(() => {
@@ -598,9 +599,9 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
             )}
 
             <DndContext sensors={ssSensors} collisionDetection={closestCenter} onDragEnd={handleSSDragEnd}>
-              <SortableContext items={m.substeps.map(s => s.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={safeSS.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                  {m.substeps.map(ss => (
+                  {safeSS.map(ss => (
                     <SortableSubstep
                       key={ss.id}
                       ss={ss}

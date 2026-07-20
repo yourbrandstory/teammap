@@ -6,7 +6,7 @@ function getMilestoneSummary(milestone, allTasks) {
   let dueToday = 0;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  for (const ss of (milestone.substeps || [])) {
+  for (const ss of (milestone.substeps || []).filter(Boolean)) {
     for (const link of (ss.linkedTasks || [])) {
       const task = allTasks.find(t => t.id === link.taskId);
       if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
@@ -28,8 +28,9 @@ const DlIcon = ({ type }) => {
 };
 
 export default function MilestoneDashCard({ milestone, S, onClick, style = {} }) {
-  const total = milestone.substeps.length;
-  const done = milestone.substeps.filter(s => s.done).length;
+  const substeps = (milestone.substeps || []).filter(Boolean);
+  const total = substeps.length;
+  const done = substeps.filter(s => s.done).length;
   const pct = total ? Math.round(done / total * 100) : 0;
   const dlClass = getDeadlineClass(milestone.deadline);
   const dlLabel = getDeadlineLabel(milestone.deadline);

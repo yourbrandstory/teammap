@@ -55,12 +55,21 @@ const clientFromRow = (r) => ({ id:r.id, name:r.name, industry:r.industry||'', c
 const clientToRow   = (c) => ({ id:c.id, name:c.name, industry:c.industry||'', color:c.color, ord:c.order ?? 0, service_category_ids:c.serviceCategoryIds||[] });
 const linkFromRow   = (r) => ({ id:r.id, memberId:r.member_id, clientId:r.client_id, roles:r.roles||[] });
 const linkToRow     = (l) => ({ id:l.id, member_id:l.memberId, client_id:l.clientId, roles:l.roles||[] });
+const sanitizeSubsteps = (raw) => {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(Boolean).map(ss => {
+    if (typeof ss !== 'object') return null;
+    const clean = { ...ss, id: ss.id || null, done: !!ss.done, title: ss.title || '', linkedTasks: Array.isArray(ss.linkedTasks) ? ss.linkedTasks.filter(Boolean).map(lt => (lt && typeof lt === 'object') ? { taskId: lt.taskId || null, showOnDashboard: !!lt.showOnDashboard } : null).filter(Boolean) : [] };
+    return clean.id ? clean : null;
+  }).filter(Boolean);
+};
 const msFromRow     = (r) => {
   let substeps = r.substeps || [];
   // Fallback: if substeps column is missing in DB but we saved them JSON-encoded in description
   if (!substeps.length && r.description) {
     try { const parsed = JSON.parse(r.description); if (Array.isArray(parsed.substeps)) substeps = parsed.substeps; } catch {}
   }
+  substeps = sanitizeSubsteps(substeps);
   return { id:r.id, title:r.title||r.name||'', mood:r.mood||r.color||'', assignedTo:r.assigned_to||[], clientId:r.client_id||'', date:r.date||'', deadline:r.deadline||'', substeps, displayMode:r.display_mode||'daily', displayDays:r.display_days||[], deleted:!!r.deleted, notes:r.notes||'', createdAt:Number(r.created_at)||Date.now(), updatedAt:Number(r.updated_at)||Date.now() };
 };
 const msToRow       = (m) => ({ id:m.id, name:m.title||m.name||'', title:m.title||'', mood:m.mood||'', assigned_to:m.assignedTo||[], client_id:m.clientId||null, date:m.date||'', deadline:m.deadline||null, substeps:m.substeps||[], display_mode:m.displayMode||'daily', display_days:m.displayDays||[], deleted:!!m.deleted, notes:m.notes||'', description:m.description||'', color:m.mood||m.color||'', created_at:m.createdAt||Date.now(), updated_at:m.updatedAt||Date.now() });
@@ -740,6 +749,8 @@ export const useStore = create((set, get) => ({
     } else {
       m = { ...(existing||{}), ...m, updatedAt:now };
     }
+    // Sanitize substeps before saving — prevent nulls from entering DB
+    m = { ...m, substeps: sanitizeSubsteps(m.substeps || []) };
     get()._patchS((S)=>{
       const i=S.milestones.findIndex(x=>x.id===m.id);
       S.milestones = i>=0 ? S.milestones.map(x=>x.id===m.id?m:x) : [...S.milestones,m];

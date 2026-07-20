@@ -15,8 +15,8 @@ export function isTaskHiddenBySubstep(taskId, milestones) {
   if (!milestones) return false;
   for (const ms of milestones) {
     if (ms.deleted) continue;
-    for (const ss of (ms.substeps || [])) {
-      const link = (ss.linkedTasks || []).find(lt => lt.taskId === taskId);
+    for (const ss of (ms.substeps || []).filter(Boolean)) {
+      const link = (ss.linkedTasks || []).filter(Boolean).find(lt => lt.taskId === taskId);
       if (link) {
         return !link.showOnDashboard;
       }
@@ -36,8 +36,8 @@ export function getTaskMilestoneLinks(taskId, milestones) {
   const results = [];
   for (const ms of milestones) {
     if (ms.deleted) continue;
-    for (const ss of (ms.substeps || [])) {
-      const link = (ss.linkedTasks || []).find(lt => lt.taskId === taskId);
+    for (const ss of (ms.substeps || []).filter(Boolean)) {
+      const link = (ss.linkedTasks || []).filter(Boolean).find(lt => lt.taskId === taskId);
       if (link) results.push({ milestone: ms, substep: ss, link });
     }
   }

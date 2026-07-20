@@ -124,7 +124,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
     if (!tid) return [];
     const results = [];
     for (const ms of S.milestones) {
-      for (const ss of (ms.substeps || [])) {
+      for (const ss of (ms.substeps || []).filter(Boolean)) {
         if ((ss.linkedTasks || []).some(lt => lt.taskId === tid)) {
           results.push({ milestone: ms, substep: ss });
         }
@@ -905,7 +905,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                               onChange={(e) => { const to = e.target.value; if (to) handleMoveTask(link.milestone.id, link.substep.id, to); }}
                             >
                               <option value="" disabled>⇄ Move to…</option>
-                              {link.milestone.substeps.filter(s => s.id !== link.substep.id).map(s => (
+                              {link.milestone.substeps.filter(Boolean).filter(s => s.id !== link.substep.id).map(s => (
                                 <option key={s.id} value={s.id}>{s.title || '(Untitled)'}</option>
                               ))}
                             </select>

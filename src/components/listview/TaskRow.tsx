@@ -14,7 +14,7 @@ function getTaskMilestones(taskId: string, milestones: any[]) {
   const results: any[] = [];
   for (const ms of milestones) {
     if (ms.deleted) continue;
-    for (const ss of (ms.substeps || [])) {
+    for (const ss of (ms.substeps || []).filter(Boolean)) {
       if ((ss.linkedTasks || []).some((lt: any) => lt.taskId === taskId)) {
         results.push(ms);
         break;
