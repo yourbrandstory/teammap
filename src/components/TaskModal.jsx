@@ -195,7 +195,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
       };
 
       const isManager = session?.role === 'admin' || session?.role === 'manager';
-      const allDone = f.subtasks.length && f.subtasks.every(s => s.done);
+      const allDone = f.subtasks.filter(Boolean).length && f.subtasks.filter(Boolean).every(s => s.done);
       const cStatus = getCompleteStatus(S.task_statuses);
       if (allDone && isManager && f.status !== cStatus) {
         payload.status = cStatus;
@@ -702,7 +702,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
           {/* ── Subtasks, Links & Activity tabs ── */}
           <div className="tdetail-tabs">
             <div className={`tdetail-tab${tDetailTab==='sub'?' active':''}`} onClick={()=>setTDetailTab('sub')}>
-              ☑ Subtasks {subtasks.length ? `(${subtasks.filter(s=>s.done).length}/${subtasks.length})` : ''}
+              ☑ Subtasks {subtasks.length ? `(${subtasks.filter(Boolean).filter(s=>s.done).length}/${subtasks.length})` : ''}
             </div>
             <div className={`tdetail-tab${tDetailTab==='links'?' active':''}`} onClick={()=>setTDetailTab('links')}>
               🔗 Links {links.length ? `(${links.length})` : ''}
@@ -717,10 +717,10 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
             {subtasks.length > 0 && (
               <div className="subtask-progress-mini">
                 <div className="subtask-bar-track">
-                  <div className="subtask-bar-fill" style={{width:`${Math.round(subtasks.filter(s=>s.done).length/subtasks.length*100)}%`}} />
+                  <div className="subtask-bar-fill" style={{width:`${Math.round(subtasks.filter(Boolean).filter(s=>s.done).length/subtasks.length*100)}%`}} />
                 </div>
                 <span style={{fontSize:11,color:'var(--t2)',fontWeight:700,whiteSpace:'nowrap'}}>
-                  {subtasks.filter(s=>s.done).length}/{subtasks.length}
+                  {subtasks.filter(Boolean).filter(s=>s.done).length}/{subtasks.length}
                 </span>
               </div>
             )}
@@ -829,8 +829,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                         {filteredMilestones.map(m => {
                           const client = m.clientId ? sel.gc(S, m.clientId) : null;
                           const assignees = (m.assignedTo || []).map(id => sel.gm(S, id)).filter(Boolean);
-                          const total = (m.substeps||[]).length;
-                          const done = (m.substeps||[]).filter(s => s.done).length;
+                          const total = (m.substeps||[]).filter(Boolean).length;
+                          const done = (m.substeps||[]).filter(Boolean).filter(s => s.done).length;
                           return (
                             <div key={m.id} className="search-item" onClick={() => { setLinkMsId(m.id); setLinkSsId(''); setMsSearch(''); }}>
                               <div className="search-item-name">{m.title}</div>
@@ -878,8 +878,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
               ) : linkedMilestones.length > 0 ? (
                 <>
                   {linkedMilestones.map(link => {
-                    const total = (link.milestone.substeps||[]).length;
-                    const done = (link.milestone.substeps||[]).filter(s => s.done).length;
+                    const total = (link.milestone.substeps||[]).filter(Boolean).length;
+                    const done = (link.milestone.substeps||[]).filter(Boolean).filter(s => s.done).length;
                     return (
                       <div key={link.milestone.id+'_'+link.substep.id} className="ms-card">
                         <div className="ms-card-row">

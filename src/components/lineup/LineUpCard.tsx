@@ -48,7 +48,7 @@ export default function LineUpCard({ task, S, onOpen, onStatusChange, onHide, on
   const hasLinks = task.links && task.links.length > 0;
   const hasSubtasks = task.subtasks && task.subtasks.length > 0;
   const subTotal = task.subtasks?.length || 0;
-  const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const subDone = task.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
   const { STATS, STC, STB } = getStatusMaps(S.task_statuses);
   const roleStatuses = getStatusesForRole(S.task_statuses, role);
 

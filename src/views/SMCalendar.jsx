@@ -351,7 +351,7 @@ export default function SMCalendar() {
                             const hasLinks = t.links?.length > 0;
                             const hasSubtasks = t.subtasks?.length > 0;
                             const subTotal = t.subtasks?.length || 0;
-                            const subDone = t.subtasks?.filter(s => s.done).length || 0;
+                            const subDone = t.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
                             const hasNotes = getNotesText(t.notes).length > 0;
                             const CIRC = 2 * Math.PI * 13;
                             const hasIcons = hasLinks || hasSubtasks || hasNotes;
@@ -426,7 +426,7 @@ export default function SMCalendar() {
               const hasLinks = t.links?.length > 0;
               const hasSubtasks = t.subtasks?.length > 0;
               const subTotal = t.subtasks?.length || 0;
-              const subDone = t.subtasks?.filter(s => s.done).length || 0;
+              const subDone = t.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
               const hasNotes = getNotesText(t.notes).length > 0;
               const CIRC = 2 * Math.PI * 13;
               const hasIcons = hasLinks || hasSubtasks || hasNotes;
@@ -572,7 +572,7 @@ export default function SMCalendar() {
               const hasLinks = t.links?.length > 0;
               const hasSubtasks = t.subtasks?.length > 0;
               const subTotal = t.subtasks?.length || 0;
-              const subDone = t.subtasks?.filter(s => s.done).length || 0;
+              const subDone = t.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
               const hasNotes = getNotesText(t.notes).length > 0;
               const CIRC = 2 * Math.PI * 13;
               const hasIcons = hasLinks || hasSubtasks || hasNotes;

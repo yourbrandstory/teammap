@@ -20,7 +20,7 @@ function isTaskHiddenBySubstep(taskId, milestones) {
   for (const ms of milestones) {
     if (ms.deleted) continue;
     for (const ss of (ms.substeps || []).filter(Boolean)) {
-      const link = (ss.linkedTasks || []).find(lt => lt.taskId === taskId);
+      const link = (ss.linkedTasks || []).filter(Boolean).find(lt => lt.taskId === taskId);
       if (link) {
         return !link.showOnDashboard;
       }
@@ -609,7 +609,7 @@ const TCard = memo(function TCard({ task, member, moods, clients, tags, taskStat
   const hasLinks = task.links?.length > 0;
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
-  const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const subDone = task.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
   const msLinks = useMemo(() => getTaskMilestoneLinks(task.id, milestones), [task.id, milestones]);
 
   return (
@@ -687,7 +687,7 @@ function getMilestoneSummary(milestone, allTasks) {
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   for (const ss of (milestone.substeps || []).filter(Boolean)) {
-    for (const link of (ss.linkedTasks || [])) {
+    for (const link of (ss.linkedTasks || []).filter(Boolean)) {
       const task = allTasks.find(t => t.id === link.taskId);
       if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
       const taskDateStr = task.date.split('T')[0];
@@ -964,7 +964,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task, member, moods, clien
   const hasLinks = task.links?.length > 0;
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
-  const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const subDone = task.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
   const msLinks = useMemo(() => getTaskMilestoneLinks(task.id, milestones), [task.id, milestones]);
 
   return (

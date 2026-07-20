@@ -11,7 +11,7 @@ function getSubstepStatus(substep, allTasks) {
   let dueToday = 0;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  for (const link of (substep.linkedTasks || [])) {
+  for (const link of (substep.linkedTasks || []).filter(Boolean)) {
     const task = allTasks.find(t => t.id === link.taskId);
     if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
     const taskDateStr = task.date.split('T')[0];
@@ -26,7 +26,7 @@ function getUrgentCount(substep, allTasks) {
   let count = 0;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  for (const link of (substep.linkedTasks || [])) {
+  for (const link of (substep.linkedTasks || []).filter(Boolean)) {
     const task = allTasks.find(t => t.id === link.taskId);
     if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
     const taskDateStr = task.date.split('T')[0];
@@ -781,11 +781,11 @@ function SortableSubstep({ ss, expanded, S, taskSensors, substeps=[], milestoneI
               <div className="ms-ss-link-section">
                 <label className="ms-ss-link-label">LINKED TASKS</label>
 
-                {(ss.linkedTasks||[]).length > 0 && (
+                {(ss.linkedTasks||[]).filter(Boolean).length > 0 && (
                   <DndContext sensors={taskSensors} collisionDetection={closestCenter} onDragEnd={(e) => onTaskDragEnd(ss.id, e)}>
-                    <SortableContext items={(ss.linkedTasks||[]).map(lt => lt.taskId)} strategy={verticalListSortingStrategy}>
+                    <SortableContext items={(ss.linkedTasks||[]).filter(Boolean).map(lt => lt.taskId)} strategy={verticalListSortingStrategy}>
                       <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                        {(ss.linkedTasks||[]).map(ltObj => {
+                        {(ss.linkedTasks||[]).filter(Boolean).map(ltObj => {
                           const lt = S.tasks.find(t => t.id === ltObj.taskId);
                           const tm = lt ? sel.gmood(S, lt.mood) : null;
                           const tc = lt ? sel.gc(S, lt.clientId) : null;

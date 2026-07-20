@@ -424,7 +424,7 @@ function DelegatedAssignedView({ S, memberId, dashDate, completeStatus, passStat
               const client = sel.gc(S, t.clientId);
               const hasSubtasks = t.subtasks?.length > 0;
               const subTotal = t.subtasks?.length || 0;
-              const subDone = t.subtasks?.filter(s => s.done).length || 0;
+              const subDone = t.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
               const hasLinks = t.links?.length > 0;
               return (
                 <div key={t.id} onClick={() => openTask(t)}
@@ -492,7 +492,7 @@ function TaskCard({ task, S, STC, STB, onClick }) {
   const sender = sel.gm(S, task.createdBy);
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
-  const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const subDone = task.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
   const hasLinks = task.links?.length > 0;
   const msLinks = useMemo(() => getTaskMilestoneLinks(task.id, S.milestones), [task.id, S.milestones]);
   const cardHover = (e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; };
@@ -568,7 +568,7 @@ const MTaskCard = ({ task, S, onOpenTask, onStatus, onHide }) => {
   const hasLinks = task.links?.length > 0;
   const hasSubtasks = task.subtasks?.length > 0;
   const subTotal = task.subtasks?.length || 0;
-  const subDone = task.subtasks?.filter(s => s.done).length || 0;
+  const subDone = task.subtasks?.filter(Boolean).filter(s => s.done).length || 0;
   const msLinks = useMemo(() => getTaskMilestoneLinks(task.id, S.milestones), [task.id, S.milestones]);
 
   return (

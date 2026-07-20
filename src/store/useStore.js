@@ -27,9 +27,10 @@ function wasBroadcast(id) {
 const taskFromRow = (r) => {
   const t = {
     id:r.id, name:r.name, clientId:r.client_id, date:r.date, mood:r.mood,
-    status:r.status, assignedTo:r.assigned_to||[], tags:r.tags||[],
+    status:r.status, assignedTo:(Array.isArray(r.assigned_to)?r.assigned_to:[]).filter(Boolean),
+    tags:sanitizeTags(r.tags),
     estH:r.est_h||0, estM:r.est_m||0, notes:r.notes||'',
-    subtasks:r.subtasks||[], links:r.links||[],
+    subtasks:sanitizeSubtasks(r.subtasks), links:sanitizeLinks(r.links),
     createdBy:r.created_by||null,
     updatedBy:r.updated_by||null,
     isMilestone:!!r.is_milestone, milestoneId:r.milestone_id||null,
@@ -62,6 +63,21 @@ const sanitizeSubsteps = (raw) => {
     const clean = { ...ss, id: ss.id || null, done: !!ss.done, title: ss.title || '', linkedTasks: Array.isArray(ss.linkedTasks) ? ss.linkedTasks.filter(Boolean).map(lt => (lt && typeof lt === 'object') ? { taskId: lt.taskId || null, showOnDashboard: !!lt.showOnDashboard } : null).filter(Boolean) : [] };
     return clean.id ? clean : null;
   }).filter(Boolean);
+};
+const sanitizeSubtasks = (raw) => {
+  if (!Array.isArray(raw)) return [];
+  const before = raw.length;
+  const clean = raw.filter(Boolean).filter(s => typeof s === 'object').map(s => ({ text: s.text || '', done: !!s.done, id: s.id || null, order: s.order ?? 0 }));
+  if (clean.length < before) console.warn(`[sanitize] Removed ${before - clean.length} invalid subtask entries`);
+  return clean;
+};
+const sanitizeLinks = (raw) => {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(Boolean).filter(l => typeof l === 'object').map(l => ({ url: l.url || '', label: l.label || '' }));
+};
+const sanitizeTags = (raw) => {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(Boolean).filter(t => typeof t === 'string' || typeof t === 'number');
 };
 const msFromRow     = (r) => {
   let substeps = r.substeps || [];

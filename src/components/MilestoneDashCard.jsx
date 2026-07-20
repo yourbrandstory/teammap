@@ -7,7 +7,7 @@ function getMilestoneSummary(milestone, allTasks) {
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   for (const ss of (milestone.substeps || []).filter(Boolean)) {
-    for (const link of (ss.linkedTasks || [])) {
+    for (const link of (ss.linkedTasks || []).filter(Boolean)) {
       const task = allTasks.find(t => t.id === link.taskId);
       if (!task || !task.date || task.status === 'Complete' || task.deleted) continue;
       const taskDateStr = task.date.split('T')[0];
