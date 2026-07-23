@@ -71,7 +71,8 @@ serve(async (req: Request) => {
     }
 
     const accessToken = conn.access_token;
-    const adAccountId = conn.ad_account_id;
+    const rawAccountId = conn.ad_account_id || '';
+    const adAccountId = rawAccountId.replace(/^act_/, '');
     const apiVersion = conn.api_version || 'v21.0';
     const resultsAction = conn.results_action_type || 'purchase';
 

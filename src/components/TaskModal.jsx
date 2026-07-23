@@ -489,7 +489,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const handleUnlinkTask = async (msId, ssId) => {
     const tid = task.id || taskIdRef.current;
     if (!tid || !msId || !ssId) return;
-    const ms = S.milestones.find(m => m.id === msId);
+    const { milestones } = useStore.getState().S;
+    const ms = milestones.find(m => m.id === msId);
     if (!ms) return;
     const updated = {
       ...ms,
@@ -498,7 +499,11 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
         linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== tid)
       } : s)
     };
-    await upsertMilestone(updated);
+    try {
+      await upsertMilestone(updated);
+    } catch (err) {
+      console.error('[UnlinkTask] upsertMilestone FAILED', err);
+    }
   };
 
   const handleMoveTask = async (msId, fromSsId, toSsId) => {
