@@ -443,7 +443,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const handleLinkTask = async () => {
     const tid = task.id || taskIdRef.current;
     if (!linkSsId || !linkMsId || !tid) return;
-    const ms = S.milestones.find(m => m.id === linkMsId);
+    const { milestones } = useStore.getState().S;
+    const ms = milestones.find(m => m.id === linkMsId);
     if (!ms) return;
     const updated = {
       ...ms,
@@ -452,7 +453,12 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
         linkedTasks: [...(s.linkedTasks||[]), { taskId: tid, showOnDashboard: false }]
       } : s)
     };
-    await upsertMilestone(updated);
+    try {
+      await upsertMilestone(updated);
+    } catch (err) {
+      console.error('[LinkTask] upsertMilestone FAILED', err);
+      return;
+    }
     setLinkMsId('');
     setLinkSsId('');
     setShowMsPicker(false);
@@ -462,11 +468,17 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
   const handleAddNewSubstep = async () => {
     if (!newSubstepTitle.trim() || !linkMsId) return;
-    const ms = S.milestones.find(m => m.id === linkMsId);
+    const { milestones } = useStore.getState().S;
+    const ms = milestones.find(m => m.id === linkMsId);
     if (!ms) return;
     const newSs = { id: uid(), title: newSubstepTitle.trim(), done: false, linkedTasks: [] };
     const updated = { ...ms, substeps: [...(ms.substeps || []), newSs] };
-    await upsertMilestone(updated);
+    try {
+      await upsertMilestone(updated);
+    } catch (err) {
+      console.error('[AddNewSubstep] upsertMilestone FAILED', err);
+      return;
+    }
     setLinkSsId(newSs.id);
     setShowNewSubstepInput(false);
     setNewSubstepTitle('');
@@ -509,7 +521,8 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
   const handleMoveTask = async (msId, fromSsId, toSsId) => {
     const tid = task.id || taskIdRef.current;
     if (!tid || !msId || !fromSsId || !toSsId || fromSsId === toSsId) return;
-    const ms = S.milestones.find(m => m.id === msId);
+    const { milestones } = useStore.getState().S;
+    const ms = milestones.find(m => m.id === msId);
     if (!ms) return;
     const updated = {
       ...ms,
