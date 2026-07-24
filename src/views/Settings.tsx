@@ -5,6 +5,7 @@ import useSettings from '../hooks/useSettings';
 import MembersPanel from '../components/settings/MembersPanel';
 import ClientsPanel from '../components/settings/ClientsPanel';
 import MoodsPanel from '../components/settings/MoodsPanel';
+import MilestoneLabelsPanel from '../components/settings/MilestoneLabelsPanel';
 import TagsPanel from '../components/settings/TagsPanel';
 import FrequencyPanel from '../components/settings/FrequencyPanel';
 import StatusPanel from '../components/settings/StatusPanel';
@@ -13,6 +14,7 @@ import PreferencesPanel from '../components/settings/PreferencesPanel';
 import MemberModal from '../components/modals/MemberModal';
 import ClientModal from '../components/modals/ClientModal';
 import MoodModal from '../components/modals/MoodModal';
+import MilestoneLabelModal from '../components/modals/MilestoneLabelModal';
 import TagModal from '../components/modals/TagModal';
 import FrequencyModal from '../components/modals/FrequencyModal';
 import StatusModal from '../components/modals/StatusModal';
@@ -33,6 +35,7 @@ export default function Settings() {
   const {
     stDrag, ftDragId, setStDrag, setFtDragId,
     delMember, delClient, toggleMoodVisibility,
+    saveMilestoneLabel, toggleMilestoneLabelVisibility,
     delTag,
     addServiceCategory, saveServiceCategory, delServiceCategory,
     delFreqTag,
@@ -45,6 +48,7 @@ export default function Settings() {
   const [memberModal, setMemberModal] = useState<any | null>(null);
   const [clientModal, setClientModal] = useState<any | null>(null);
   const [moodModal, setMoodModal] = useState<{ index: number; mood?: any } | null>(null);
+  const [msLabelModal, setMsLabelModal] = useState<{ index: number; label?: any } | null>(null);
   const [tagModal, setTagModal] = useState<any | null>(null);
   const [serviceCategoryModal, setServiceCategoryModal] = useState<any | null>(null);
   const [freqModal, setFreqModal] = useState<any | null>(null);
@@ -116,6 +120,13 @@ export default function Settings() {
           onEdit={(i) => setMoodModal({ index: i, mood: S.moods[i] })}
           onAdd={() => setMoodModal({ index: -1 })}
           onToggleVisibility={toggleMoodVisibility}
+        />
+
+        <MilestoneLabelsPanel
+          labels={S.milestoneLabels || []}
+          onEdit={(i) => setMsLabelModal({ index: i, label: (S.milestoneLabels || [])[i] })}
+          onAdd={() => setMsLabelModal({ index: -1 })}
+          onToggleVisibility={toggleMilestoneLabelVisibility}
         />
 
         <TagsPanel
@@ -236,6 +247,15 @@ export default function Settings() {
             await setMoods(moods);
           }}
           onClose={() => setMoodModal(null)}
+        />
+      )}
+
+      {msLabelModal && (
+        <MilestoneLabelModal
+          label={msLabelModal.index >= 0 ? msLabelModal.label : null}
+          index={msLabelModal.index}
+          onSave={saveMilestoneLabel}
+          onClose={() => setMsLabelModal(null)}
         />
       )}
 

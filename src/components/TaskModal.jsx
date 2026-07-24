@@ -809,24 +809,17 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
 
         {/* ── Section 3 — More ── */}
         <div className={`modal-section${tab==='s3'?' active':''}`}>
-          <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}}>
-            {[
-              { id:'milestone', label:'Milestone' },
-              { id:'checklist', label:'Checklist' },
-              { id:'batch', label:'Batch task' },
-            ].map(st => {
-              const isActive = st.id === 'milestone';
-              return (
-                <button key={st.id}
-                  className={`s3-subtab${s3Tab===st.id?' active':''}${!isActive?' coming-soon':''}`}
-                  onClick={isActive ? () => setS3Tab(st.id) : undefined}>
-                  {st.label}
-                </button>
-              );
-            })}
+          <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap',alignItems:'center'}}>
+            <span style={{fontSize:11,fontWeight:600,color:'var(--t2)'}}>Type:</span>
+            <select value={s3Tab} onChange={e => setS3Tab(e.target.value)}
+              style={{fontSize:12,padding:'3px 8px',borderRadius:6,border:'1px solid var(--bdr)',background:'var(--bg)',color:'var(--t1)'}}>
+              {(S.milestoneLabels || []).filter(l => !l.hidden).map(l => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
           </div>
 
-          {s3Tab === 'milestone' && (
+          {s3Tab && (
             <div>
               {!(task.id || taskIdRef.current) ? (
                 <div style={{color:'var(--t3)',padding:'8px 0',fontSize:12}}>Save the task first to link it to a milestone.</div>
@@ -902,7 +895,7 @@ export default function TaskModal({ task = {}, onClose, onSave, fromCellText = '
                       <div key={link.milestone.id+'_'+link.substep.id} className="ms-card">
                         <div className="ms-card-row">
                           <div className="ms-card-icon-sq"><i>◆</i></div>
-                          <span className="ms-card-tag">◆ MILESTONE</span>
+                          <span className="ms-card-tag">◆ {sel.gMsLabel(S, link.milestone.labelId).toUpperCase()}</span>
                           <span className="ms-card-title">{link.milestone.title}</span>
                         </div>
                         <div className="ms-card-divider" />

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { useUIStore } from './useUIStore';
 import {
-  DMOODS, DEFAULT_NAV_ORDER, DEFAULT_NAV_LABELS, DEFAULT_SERVICE_CATEGORIES, DEFAULT_TASK_STATUSES, uid,
+  DMOODS, DEFAULT_NAV_ORDER, DEFAULT_NAV_LABELS, DEFAULT_SERVICE_CATEGORIES, DEFAULT_TASK_STATUSES, DEFAULT_MILESTONE_LABELS, uid,
 } from '../lib/constants';
 import { getCompleteStatus, getReviewStatus } from '../utils/statusUtils';
 import { validateTaskCreation } from '../utils/taskLimits';
@@ -86,14 +86,14 @@ const msFromRow     = (r) => {
     try { const parsed = JSON.parse(r.description); if (Array.isArray(parsed.substeps)) substeps = parsed.substeps; } catch {}
   }
   substeps = sanitizeSubsteps(substeps);
-  return { id:r.id, title:r.title||r.name||'', mood:r.mood||r.color||'', assignedTo:r.assigned_to||[], clientId:r.client_id||'', date:r.date||'', deadline:r.deadline||'', substeps, displayMode:r.display_mode||'daily', displayDays:r.display_days||[], deleted:!!r.deleted, notes:r.notes||'', createdAt:Number(r.created_at)||Date.now(), updatedAt:Number(r.updated_at)||Date.now() };
+  return { id:r.id, title:r.title||r.name||'', mood:r.mood||r.color||'', assignedTo:r.assigned_to||[], clientId:r.client_id||'', date:r.date||'', deadline:r.deadline||'', substeps, displayMode:r.display_mode||'daily', displayDays:r.display_days||[], deleted:!!r.deleted, notes:r.notes||'', createdAt:Number(r.created_at)||Date.now(), updatedAt:Number(r.updated_at)||Date.now(), labelId:r.label_id||'milestone' };
 };
-const msToRow       = (m) => ({ id:m.id, name:m.title||m.name||'', title:m.title||'', mood:m.mood||'', assigned_to:m.assignedTo||[], client_id:m.clientId||null, date:m.date||'', deadline:m.deadline||null, substeps:m.substeps||[], display_mode:m.displayMode||'daily', display_days:m.displayDays||[], deleted:!!m.deleted, notes:m.notes||'', description:m.description||'', color:m.mood||m.color||'', created_at:m.createdAt||Date.now(), updated_at:m.updatedAt||Date.now() });
+const msToRow       = (m) => ({ id:m.id, name:m.title||m.name||'', title:m.title||'', mood:m.mood||'', assigned_to:m.assignedTo||[], client_id:m.clientId||null, date:m.date||'', deadline:m.deadline||null, substeps:m.substeps||[], display_mode:m.displayMode||'daily', display_days:m.displayDays||[], deleted:!!m.deleted, notes:m.notes||'', description:m.description||'', color:m.mood||m.color||'', created_at:m.createdAt||Date.now(), updated_at:m.updatedAt||Date.now(), label_id:m.labelId||'milestone' });
 const tagFromRow    = (r) => ({ id:r.id, label:r.label, color:r.color });
 const tagToRow      = (t) => ({ id:t.id, label:t.label, color:t.color });
 
 const SESSION_KEY = 'tm-session';
-const STATE_KEYS = ['settings','moods','navOrder','navLabels','freqTags','templates','playground','tg2Views','lineUpOrder','lineUpHidden','task_statuses','serviceCategories','memberOrder'];
+const STATE_KEYS = ['settings','moods','navOrder','navLabels','freqTags','templates','playground','tg2Views','lineUpOrder','lineUpHidden','task_statuses','serviceCategories','memberOrder','milestoneLabels'];
 
 const EMPTY_S = {
   members:[], clients:[], links:[], tasks:[], milestones:[], tags:[],
@@ -104,6 +104,7 @@ const EMPTY_S = {
   navOrder:[...DEFAULT_NAV_ORDER], navLabels:{...DEFAULT_NAV_LABELS},
   serviceCategories:[], freqTags:[], task_statuses:[], templates:[], playground:{ tabs:[{ id:'pg1', name:'Sheet 1', data:{} }] },
   tg2Views:[], lineUpOrder:{}, lineUpHidden:{}, memberOrder:[],
+  milestoneLabels: JSON.parse(JSON.stringify(DEFAULT_MILESTONE_LABELS)),
 };
 
 export const useStore = create((set, get) => ({
@@ -354,6 +355,12 @@ export const useStore = create((set, get) => ({
       }
       // Seed app_state so future loads read saved order from here
       supabase.from('app_state').upsert({ key: 'moods', value: S.moods }).then();
+    }
+
+    // ── Milestone labels: seed defaults if not in app_state ──
+    if (!S.milestoneLabels || !S.milestoneLabels.length) {
+      S.milestoneLabels = JSON.parse(JSON.stringify(DEFAULT_MILESTONE_LABELS));
+      supabase.from('app_state').upsert({ key: 'milestoneLabels', value: S.milestoneLabels }).then();
     }
 
     if (!S.settings) S.settings = { maxCap:6, weekends:false, spMember:S.members[0]?.id || null };
@@ -866,6 +873,7 @@ export const useStore = create((set, get) => ({
       }))),
     ]);
   },
+  setMilestoneLabels: async (labels) => { get()._patchS((S)=>{ S.milestoneLabels=labels; }); await get()._persistState('milestoneLabels'); },
   setNavOrder: async (order) => { get()._patchS((S)=>{ S.navOrder=order; }); await get()._persistState('navOrder'); },
   setNavLabels: async (labels) => { get()._patchS((S)=>{ S.navLabels=labels; }); await get()._persistState('navLabels'); },
   resetNav: async () => {
@@ -963,4 +971,5 @@ export const sel = {
   scl: (S)=>[...S.clients].sort((a,b)=>(a.order||0)-(b.order||0)),
   tasksOnDate:(S,d)=>S.tasks.filter(t=>t.date===d&&!t.deleted),
   tasksForMD:(S,mid,d)=>S.tasks.filter(t=>t.date===d&&!t.deleted&&t.assignedTo&&t.assignedTo.includes(mid)),
+  gMsLabel:(S,labelId)=>{ const lbl=(S.milestoneLabels||[]).find(l=>l.id===labelId); return lbl?.name||'Milestone'; },
 };

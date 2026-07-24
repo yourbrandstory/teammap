@@ -42,7 +42,7 @@ export default function MilestoneDashCard({ milestone, S, onClick, style = {} })
   return (
     <div className="ms-dash-card" style={{ position: 'relative', ...style }} onClick={onClick}>
       <div className="ms-dash-head">
-        <span className="ms-dash-badge">◆ MILESTONE</span>
+        <span className="ms-dash-badge">◆ {sel.gMsLabel(S, milestone.labelId).toUpperCase()}</span>
         {dlLabel && <span className={`ms-dash-deadline ${dlClass}`}>{dlLabel}</span>}
       </div>
       {(summary.overdue > 0 || summary.dueToday > 0) && (

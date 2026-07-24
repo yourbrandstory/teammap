@@ -28,6 +28,12 @@ export const DEFAULT_NAV_LABELS = {
   pg:'Playground', st:'Settings'
 };
 
+export const DEFAULT_MILESTONE_LABELS = [
+  { id:'milestone', name:'Milestone', order:0, hidden:false },
+  { id:'checklist', name:'Checklist', order:1, hidden:false },
+  { id:'batch',     name:'Batch',     order:2, hidden:false },
+];
+
 // ── SM Calendar pastel mood palette (separate from DMOODS colours) ─────────
 export const MOOD_PASTEL = {
   top:        { bg:'#E6F1FB', text:'#0C447C' },

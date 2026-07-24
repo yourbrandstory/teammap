@@ -16,6 +16,7 @@ export default function useSettings() {
   const upsertServiceCategory = useStore(s => s.upsertServiceCategory);
   const delServiceCategoryStore = useStore(s => s.delServiceCategory);
   const setStateKey = useStore(s => s.setStateKey);
+  const setMilestoneLabels = useStore(s => s.setMilestoneLabels);
   const setNavOrder = useStore(s => s.setNavOrder);
   const setNavLabels = useStore(s => s.setNavLabels);
   const resetNav = useStore(s => s.resetNav);
@@ -83,6 +84,22 @@ export default function useSettings() {
     const { error } = await supabase.from('moods').update({ hidden: nextHidden }).eq('id', moodId);
     if (error) console.error('toggleMoodVisibility', error);
   }, [S.moods, setMoods]);
+
+  // Milestone Labels
+  const saveMilestoneLabel = useCallback(async (index: number, data: any) => {
+    const labels = [...(S.milestoneLabels || [])];
+    if (index >= 0 && index < labels.length) {
+      labels[index] = { ...labels[index], ...data };
+    } else {
+      labels.push({ id: uid(), name: data.name, order: labels.length, hidden: false });
+    }
+    await setMilestoneLabels(labels);
+  }, [S.milestoneLabels, setMilestoneLabels]);
+
+  const toggleMilestoneLabelVisibility = useCallback(async (labelId: string) => {
+    const labels = (S.milestoneLabels || []).map(l => l.id === labelId ? { ...l, hidden: !l.hidden } : l);
+    await setMilestoneLabels(labels);
+  }, [S.milestoneLabels, setMilestoneLabels]);
 
   // Tags
   const addTag = useCallback(async (label: string) => {
@@ -281,6 +298,7 @@ export default function useSettings() {
     saveMember, delMember,
     saveClient, delClient,
     saveMood, toggleMoodVisibility,
+    saveMilestoneLabel, toggleMilestoneLabelVisibility,
     addTag, saveTag, delTag,
     addServiceCategory, saveServiceCategory, delServiceCategory,
     addFreqTag, saveFreqTag, delFreqTag,

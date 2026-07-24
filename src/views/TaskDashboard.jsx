@@ -398,7 +398,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
           return (
             <div key={ms.id} className="ms-dash-card" style={{position:'relative'}} onClick={() => onOpenMs?.(ms)}>
               <div className="ms-dash-head">
-                <span className="ms-dash-badge">◆ MILESTONE</span>
+                <span className="ms-dash-badge">◆ {sel.gMsLabel(S, ms.labelId).toUpperCase()}</span>
                 {dlLabel && <span className={`ms-dash-deadline ${dlClass}`}>{dlLabel}</span>}
               </div>
               {(summary.overdue > 0 || summary.dueToday > 0) && (
@@ -433,7 +433,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
           return (
             <div key={ms.id} className="ms-dash-card" style={{position:'relative'}} onClick={() => onOpenMs?.(ms)}>
               <div className="ms-dash-head">
-                <span className="ms-dash-badge">◆ MILESTONE</span>
+                <span className="ms-dash-badge">◆ {sel.gMsLabel(S, ms.labelId).toUpperCase()}</span>
                 {dlLabel && <span className={`ms-dash-deadline ${dlClass}`}>{dlLabel}</span>}
               </div>
               {(summary.overdue > 0 || summary.dueToday > 0) && (
@@ -552,7 +552,7 @@ const TeamCol = memo(function TeamCol({ member, date, S, reviewStatus, reviewFil
                   return (
                     <div key={ms.id} className="ms-dash-card" style={{position:'relative'}} onClick={() => onOpenMs?.(ms)}>
                               <div className="ms-dash-head">
-                        <span className="ms-dash-badge">◆ MILESTONE</span>
+                        <span className="ms-dash-badge">◆ {sel.gMsLabel(S, ms.labelId).toUpperCase()}</span>
                         {mDlLabel && <span className={`ms-dash-deadline ${mDlClass}`}>{mDlLabel}</span>}
                       </div>
                       {(summary.overdue > 0 || summary.dueToday > 0) && (
@@ -759,7 +759,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
           return (
             <div key={ms.id} className="ms-dash-card" style={{position:'relative'}} onClick={() => onOpenMs?.(ms)}>
               <div className="ms-dash-head">
-                <span className="ms-dash-badge">◆ MILESTONE</span>
+                <span className="ms-dash-badge">◆ {sel.gMsLabel(S, ms.labelId).toUpperCase()}</span>
                 {dlLabel && <span className={`ms-dash-deadline ${dlClass}`}>{dlLabel}</span>}
               </div>
               {(summary.overdue > 0 || summary.dueToday > 0) && (
@@ -794,7 +794,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
           return (
             <div key={ms.id} className="ms-dash-card" style={{position:'relative'}} onClick={() => onOpenMs?.(ms)}>
               <div className="ms-dash-head">
-                <span className="ms-dash-badge">◆ MILESTONE</span>
+                <span className="ms-dash-badge">◆ {sel.gMsLabel(S, ms.labelId).toUpperCase()}</span>
                 {dlLabel && <span className={`ms-dash-deadline ${dlClass}`}>{dlLabel}</span>}
               </div>
               {(summary.overdue > 0 || summary.dueToday > 0) && (
@@ -914,7 +914,7 @@ const TeamColMobile = memo(function TeamColMobile({ member, date, S, expandedCar
                 return (
                   <div key={ms.id} className="ms-dash-card" style={{position:'relative'}} onClick={() => onOpenMs?.(ms)}>
                             <div className="ms-dash-head">
-                      <span className="ms-dash-badge">◆ MILESTONE</span>
+                      <span className="ms-dash-badge">◆ {sel.gMsLabel(S, ms.labelId).toUpperCase()}</span>
                       {mDlLabel && <span className={`ms-dash-deadline ${mDlClass}`}>{mDlLabel}</span>}
                     </div>
                     {(summary.overdue > 0 || summary.dueToday > 0) && (

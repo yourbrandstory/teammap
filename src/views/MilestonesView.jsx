@@ -12,6 +12,7 @@ export default function MilestonesView({ memberFilter, hideNewButton }) {
   const [modal, setModal] = useState(null);
   const [taskModal, setTaskModal] = useState(null);
   const [clientFilter, setClientFilter] = useState('');
+  const [searchQ, setSearchQ] = useState('');
   const linkAfterCreateRef = useRef(null);
   const openTask = useCallback((t) => setTaskModal(t), []);
   const closeTask = useCallback(() => setTaskModal(null), []);
@@ -78,9 +79,23 @@ export default function MilestonesView({ memberFilter, hideNewButton }) {
   }, [S.milestones, memberFilter]);
 
   const filteredMilestones = useMemo(() => {
-    if (!clientFilter) return activeMilestones;
-    return activeMilestones.filter(m => m.clientId === clientFilter);
-  }, [activeMilestones, clientFilter]);
+    let ms = activeMilestones;
+    if (clientFilter) ms = ms.filter(m => m.clientId === clientFilter);
+    if (searchQ.trim()) {
+      const q = searchQ.toLowerCase();
+      ms = ms.filter(m => {
+        const titleMatch = (m.title || '').toLowerCase().includes(q);
+        const client = m.clientId ? sel.gc(S, m.clientId) : null;
+        const clientMatch = client?.name?.toLowerCase().includes(q);
+        const assigneeMatch = (m.assignedTo || []).some(mid => {
+          const mem = sel.gm(S, mid);
+          return mem?.name?.toLowerCase().includes(q);
+        });
+        return titleMatch || clientMatch || assigneeMatch;
+      });
+    }
+    return ms;
+  }, [activeMilestones, clientFilter, searchQ, S]);
 
   const clients = useMemo(() => {
     const usedIds = new Set(activeMilestones.map(m => m.clientId).filter(Boolean));
@@ -100,6 +115,14 @@ export default function MilestonesView({ memberFilter, hideNewButton }) {
         {!hideNewButton && <button className="mv-new-btn" onClick={() => setModal({})}>+ New Milestone</button>}
       </div>
 
+      <div className="mv-search-row" style={{padding:'0 0 8px',display:'flex',alignItems:'center',gap:8}}>
+        <div className="search-bar" style={{flex:1,borderBottom:'none',border:'1.5px solid var(--border)',borderRadius:8}}>
+          <i style={{fontSize:12,color:'var(--t3)'}}>🔍</i>
+          <input type="text" placeholder="Search milestones…" value={searchQ}
+            onChange={e => setSearchQ(e.target.value)} />
+        </div>
+      </div>
+
       {clients.length > 0 && (
         <div className="mv-filter-row">
           <button className={`mv-filter-chip${!clientFilter ? ' on' : ''}`} onClick={() => setClientFilter('')}>All</button>
@@ -114,7 +137,9 @@ export default function MilestonesView({ memberFilter, hideNewButton }) {
       <div className="mv-body">
         {filteredMilestones.length === 0 && (
           <div className="mv-empty">
-            {clientFilter ? 'No milestones for this client' : 'No milestones yet. Click "+ New Milestone" to create one.'}
+            {searchQ.trim()
+              ? 'No milestones match your search'
+              : clientFilter ? 'No milestones for this client' : 'No milestones yet. Click "+ New Milestone" to create one.'}
           </div>
         )}
 
@@ -142,7 +167,7 @@ export default function MilestonesView({ memberFilter, hideNewButton }) {
                 🗑
               </button>
               <div className="mv-badge-row">
-                <span className="mv-badge">◆ MILESTONE</span>
+                <span className="mv-badge">◆ {sel.gMsLabel(S, ms.labelId).toUpperCase()}</span>
                 {dlLabel && <span className={`mv-deadline ${dlClass}`}>{dlLabel}</span>}
               </div>
               <div className="mv-title">{ms.title}</div>

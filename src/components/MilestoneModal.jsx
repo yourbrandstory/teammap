@@ -75,7 +75,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     displayDays: milestone.displayDays || [],
   } : {
     id: null, title: '', mood: '', assignedTo: [], clientId: '', date: today(), deadline: '',
-    substeps: [], displayMode: 'daily', displayDays: [], notes: '',
+    substeps: [], displayMode: 'daily', displayDays: [], notes: '', labelId: 'milestone',
   });
   const [tab, setTab] = useState(0);
   const [expandedSS, setExpandedSS] = useState({});
@@ -135,7 +135,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       (milestone.title || '').trim(), milestone.mood || '', [...(milestone.assignedTo || [])].sort(),
       milestone.clientId || '', milestone.date || '', milestone.deadline || '',
       JSON.stringify(milestone.substeps || []), milestone.displayMode || 'daily', [...(milestone.displayDays || [])].sort(),
-      milestone.notes || '',
+      milestone.notes || '', milestone.labelId || 'milestone',
     ]);
   }
 
@@ -171,7 +171,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       clientId: m.clientId || '', date: m.date, deadline: m.deadline || '',
       substeps: (m.substeps || []).map(s => ({ ...s })),
       displayMode: m.displayMode, displayDays: [...(m.displayDays || [])],
-      notes: m.notes || '',
+      notes: m.notes || '', labelId: m.labelId || 'milestone',
     };
   });
 
@@ -189,7 +189,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
         f.title.trim(), f.mood || '', [...f.assignedTo].sort(),
         f.clientId || '', f.date || '', f.deadline || '',
         JSON.stringify(substepsToSave), f.displayMode || 'daily', [...f.displayDays].sort(),
-        f.notes || '',
+        f.notes || '', f.labelId || 'milestone',
       ]);
       if (snapshot === lastSnapshot.current && currentId && !overrideSubsteps) return null;
 
@@ -201,7 +201,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
         clientId: f.clientId || null, date: f.date || '', deadline: f.deadline || null,
         substeps: substepsToSave,
         displayMode: f.displayMode || 'daily', displayDays: [...f.displayDays],
-        notes: f.notes || '',
+        notes: f.notes || '', labelId: f.labelId || 'milestone',
       };
       payload.deleted = false;
 
@@ -523,6 +523,20 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
                     style={on?{background:mood.bg,color:mood.color,borderColor:mood.color,borderWidth:2}:{}}
                     onClick={() => { updateField('mood',mood.id); setTriedSave(false); }}>
                     {mood.icon} {mood.label}
+                  </div>
+                );
+              })}
+            </div>
+
+            <label className="fl">Type</label>
+            <div className="ttag-row" style={{marginBottom:10}}>
+              {(S.milestoneLabels || []).filter(l => !l.hidden).map(l => {
+                const on = (m.labelId || 'milestone') === l.id;
+                return (
+                  <div key={l.id} className={`ttagopt${on?' on':''}`}
+                    style={on ? {borderColor:'var(--accent)',background:'var(--accent)22',color:'var(--accent)'} : {}}
+                    onClick={() => updateField('labelId', l.id)}>
+                    ◆ {l.name}
                   </div>
                 );
               })}
