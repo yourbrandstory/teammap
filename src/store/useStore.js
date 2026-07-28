@@ -780,18 +780,27 @@ export const useStore = create((set, get) => ({
     });
     let row = msToRow(m);
 
+    console.log('[upsertMilestone] BEFORE WRITE:', { id: m.id, title: m.title, substeps: JSON.parse(JSON.stringify(m.substeps || [])), isNew });
+
     // Iterative retry: if Supabase complains about a missing column, strip it and retry.
-    // Keep the smallest number of known-good columns that let the save succeed.
-    // "description" is the only extras column guaranteed by the original schema.
     let error = null;
     for (let attempt = 0; attempt < 20; attempt++) {
       const result = await supabase.from('milestones').upsert(row).select();
       error = result.error;
       if (!error) {
+        console.log('[upsertMilestone] DB RESPONSE (attempt ' + attempt + '):', { ok: true, savedSubsteps: result.data?.[0]?.substeps });
         if (attempt > 0) {
-          // Fallback path was used — encode substeps into description so it survives reload
           const descPayload = JSON.stringify({ substeps: m.substeps || [] });
           await supabase.from('milestones').update({ description: descPayload }).eq('id', m.id);
+        }
+        // VERIFY: confirm substeps actually landed in the DB row
+        const savedSubsteps = result.data?.[0]?.substeps;
+        const sentSubsteps = m.substeps || [];
+        if (savedSubsteps && JSON.stringify(savedSubsteps) !== JSON.stringify(sentSubsteps)) {
+          console.error('[upsertMilestone] SUBSTEPS MISMATCH — DB has different data than sent!', { sent: sentSubsteps, saved: savedSubsteps });
+          const fix = await supabase.from('milestones').update({ substeps: sentSubsteps, updated_at: now }).eq('id', m.id);
+          if (fix.error) console.error('[upsertMilestone] substeps fix UPDATE failed:', fix.error);
+          else console.log('[upsertMilestone] substeps fix UPDATE succeeded');
         }
         break;
       }
@@ -811,13 +820,18 @@ export const useStore = create((set, get) => ({
       row = rest;
     }
 
-    // If all attempts failed and we still have an error, try the bare minimum (old schema)
+    // If all attempts failed, write substeps directly — this is the critical data
+    // Use two separate UPDATEs so that if the substeps column doesn't exist,
+    // the description UPDATE still goes through as a safety net.
     if (error) {
-      const bareRow = { id:m.id, name:m.title||m.name||'', description:JSON.stringify({ substeps: m.substeps || [] }), assigned_to:m.assignedTo||[], color:m.mood||m.color||'', created_at:m.createdAt||Date.now() };
-      const fb = await supabase.from('milestones').upsert(bareRow).select();
-      if (fb.error) {
-        console.error('[upsertMilestone] bare minimum also failed:', fb.error);
-      }
+      console.warn('[upsertMilestone] primary upsert failed, writing substeps via direct UPDATEs');
+      const substepsPayload = m.substeps || [];
+      const r1 = await supabase.from('milestones').update({ substeps: substepsPayload, updated_at: now }).eq('id', m.id);
+      if (r1.error) console.warn('[upsertMilestone] substeps column UPDATE failed (may not exist):', r1.error.message);
+      else console.log('[upsertMilestone] substeps column UPDATE OK');
+      const r2 = await supabase.from('milestones').update({ description: JSON.stringify({ substeps: substepsPayload }) }).eq('id', m.id);
+      if (r2.error) console.error('[upsertMilestone] description fallback also failed:', r2.error);
+      else console.log('[upsertMilestone] description fallback UPDATE OK');
     }
 
     return m;

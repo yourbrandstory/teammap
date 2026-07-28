@@ -165,11 +165,15 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
   }, [milestoneIdRef.current, S.milestones]);
 
   // Keep a ref with the latest field values (no stale closures in debounce callbacks)
+  // Deep-copy substeps + linkedTasks to prevent any mutation-by-reference issues
   useEffect(() => {
     fieldsRef.current = {
       title: m.title, mood: m.mood, assignedTo: [...(m.assignedTo || [])],
       clientId: m.clientId || '', date: m.date, deadline: m.deadline || '',
-      substeps: (m.substeps || []).map(s => ({ ...s })),
+      substeps: (m.substeps || []).map(s => ({
+        ...s,
+        linkedTasks: (s.linkedTasks || []).map(lt => ({ ...lt })),
+      })),
       displayMode: m.displayMode, displayDays: [...(m.displayDays || [])],
       notes: m.notes || '', labelId: m.labelId || 'milestone',
     };
