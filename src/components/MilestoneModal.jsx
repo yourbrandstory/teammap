@@ -103,32 +103,6 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   );
 
-  const handleSSDragEnd = useCallback((event) => {
-    const { active, over } = event;
-    if (!active || !over || active.id === over.id) return;
-    setM(prev => {
-      const oldIdx = prev.substeps.findIndex(s => s.id === active.id);
-      const newIdx = prev.substeps.findIndex(s => s.id === over.id);
-      if (oldIdx === -1 || newIdx === -1) return prev;
-      return { ...prev, substeps: arrayMove(prev.substeps, oldIdx, newIdx) };
-    });
-  }, []);
-
-  const handleTaskDragEnd = useCallback((ssId, event) => {
-    const { active, over } = event;
-    if (!active || !over || active.id === over.id) return;
-    setM(prev => ({
-      ...prev,
-      substeps: prev.substeps.map(s => {
-        if (s.id !== ssId) return s;
-        const oldIdx = s.linkedTasks.findIndex(lt => lt.taskId === active.id);
-        const newIdx = s.linkedTasks.findIndex(lt => lt.taskId === over.id);
-        if (oldIdx === -1 || newIdx === -1) return s;
-        return { ...s, linkedTasks: arrayMove(s.linkedTasks, oldIdx, newIdx) };
-      })
-    }));
-  }, []);
-
   // Initialize snapshot on first render to prevent auto-save on mount for existing milestones
   if (milestone?.id && lastSnapshot.current === '') {
     lastSnapshot.current = JSON.stringify([
@@ -179,15 +153,13 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     };
   });
 
-  const doSave = useCallback((overrideSubsteps) => {
+  const doSave = useCallback(() => {
     const result = saveQueue.current.catch(() => {}).then(async () => {
       const f = fieldsRef.current;
       const currentId = milestoneIdRef.current;
       if (!f.title?.trim() || !f.clientId || !f.assignedTo?.length) return null;
 
-      const substepsToSave = overrideSubsteps !== undefined
-        ? overrideSubsteps.map(s => ({ ...s }))
-        : f.substeps.map(s => ({ ...s }));
+      const substepsToSave = (f.substeps || []).map(s => ({ ...s }));
 
       const snapshot = JSON.stringify([
         f.title.trim(), f.mood || '', [...f.assignedTo].sort(),
@@ -195,7 +167,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
         JSON.stringify(substepsToSave), f.displayMode || 'daily', [...f.displayDays].sort(),
         f.notes || '', f.labelId || 'milestone',
       ]);
-      if (snapshot === lastSnapshot.current && currentId && !overrideSubsteps) return null;
+      if (snapshot === lastSnapshot.current && currentId) return null;
 
       if (mountedRef.current) setSaveStatus('saving');
 
@@ -243,12 +215,69 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     return doSave();
   }, [doSave]);
 
-  const scheduleSave = useCallback(() => {
+  // ONE save function for every milestone field edit. Commits the change to
+  // fieldsRef synchronously (so a queued save always sees the latest state),
+  // cancels any pending debounced save, then persists the FULL milestone
+  // payload immediately — the same path substeps already used.
+  const commit = useCallback((patch) => {
+    fieldsRef.current = { ...fieldsRef.current, ...patch };
+    setM(prev => ({ ...prev, ...patch }));
+  }, []);
+
+  const saveNow = useCallback(() => {
+    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+    return doSave();
+  }, [doSave]);
+
+  // Debounce is kept ONLY for continuous text typing (title, notes, substep titles).
+  const scheduleTextSave = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => doSave(), 600);
   }, [doSave]);
 
-  // Auto-save: debounce on any field change (mirrors TaskModal pattern)
+  // Update a single field via the unified save path. Discrete field edits save
+  // immediately; text fields (title/notes) debounce to avoid a write per keystroke.
+  const updateField = (field, value) => {
+    commit({ [field]: value });
+    saveNow();
+  };
+  const updateFieldDebounced = (field, value) => {
+    commit({ [field]: value });
+    scheduleTextSave();
+  };
+
+  const handleSSDragEnd = useCallback((event) => {
+    const { active, over } = event;
+    if (!active || !over || active.id === over.id) return;
+    const cur = fieldsRef.current.substeps || [];
+    const oldIdx = cur.findIndex(s => s.id === active.id);
+    const newIdx = cur.findIndex(s => s.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    commit({ substeps: arrayMove(cur, oldIdx, newIdx) });
+    saveNow();
+  }, [commit, saveNow]);
+
+  const handleTaskDragEnd = useCallback((ssId, event) => {
+    const { active, over } = event;
+    if (!active || !over || active.id === over.id) return;
+    const cur = (fieldsRef.current.substeps || []).map(s => ({
+      ...s,
+      linkedTasks: (s.linkedTasks || []).map(lt => ({ ...lt })),
+    }));
+    const newSubsteps = cur.map(s => {
+      if (s.id !== ssId) return s;
+      const oldIdx = (s.linkedTasks || []).findIndex(lt => lt.taskId === active.id);
+      const newIdx = (s.linkedTasks || []).findIndex(lt => lt.taskId === over.id);
+      if (oldIdx === -1 || newIdx === -1) return s;
+      return { ...s, linkedTasks: arrayMove(s.linkedTasks || [], oldIdx, newIdx) };
+    });
+    commit({ substeps: newSubsteps });
+    saveNow();
+  }, [commit, saveNow]);
+
+  // Safety net: if any change to `m` slips through without an explicit save,
+  // debounce it through the same doSave. No-ops via the snapshot guard when a
+  // direct save already persisted the same state.
   useEffect(() => {
     const f = { title: m.title, mood: m.mood, assignedTo: m.assignedTo };
     if (!f.title?.trim() || !m.clientId || !f.assignedTo?.length) return;
@@ -257,8 +286,8 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       flushSave();
       return;
     }
-    scheduleSave();
-  }, [m, scheduleSave, flushSave]);
+    scheduleTextSave();
+  }, [m, scheduleTextSave, flushSave]);
 
   const safeSS = (m.substeps || []).filter(Boolean);
   const subTotal = safeSS.length;
@@ -292,49 +321,47 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     onClose?.();
   };
 
-  const updateField = (field, value) => setM(prev => ({ ...prev, [field]: value }));
-
   const toggleAssign = (mid) => {
-    setM(prev => ({
-      ...prev,
-      assignedTo: prev.assignedTo.includes(mid)
-        ? prev.assignedTo.filter(id => id !== mid)
-        : [...prev.assignedTo, mid]
-    }));
+    const cur = fieldsRef.current.assignedTo || [];
+    const next = cur.includes(mid)
+      ? cur.filter(id => id !== mid)
+      : [...cur, mid];
+    commit({ assignedTo: next });
+    saveNow();
   };
 
   const setClient = (cid) => {
-    setM(prev => ({ ...prev, clientId: prev.clientId === cid ? '' : cid }));
+    commit({ clientId: fieldsRef.current.clientId === cid ? '' : cid });
+    saveNow();
   };
 
   const toggleSubstep = (ssId) => {
     const cur = fieldsRef.current.substeps || [];
     const newSubsteps = cur.map(s => s.id === ssId ? { ...s, done: !s.done } : s);
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
-    doSave(newSubsteps);
+    commit({ substeps: newSubsteps });
+    saveNow();
   };
 
   const updateSubstepTitle = (ssId, title) => {
-    setM(prev => ({
-      ...prev,
-      substeps: prev.substeps.map(s => s.id === ssId ? { ...s, title } : s)
-    }));
+    const cur = fieldsRef.current.substeps || [];
+    commit({ substeps: cur.map(s => s.id === ssId ? { ...s, title } : s) });
+    scheduleTextSave();
   };
 
   const addSubstep = () => {
     const newSs = { id: uid(), title: '', done: false, linkedTasks: [] };
     const cur = fieldsRef.current.substeps || [];
     const newSubsteps = [...cur, newSs];
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    commit({ substeps: newSubsteps });
     setExpandedSS(prev => ({ ...prev, [newSs.id]: true }));
-    doSave(newSubsteps);
+    saveNow();
   };
 
   const removeSubstep = (ssId) => {
     const cur = fieldsRef.current.substeps || [];
     const newSubsteps = cur.filter(s => s.id !== ssId);
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
-    doSave(newSubsteps);
+    commit({ substeps: newSubsteps });
+    saveNow();
   };
 
   const linkTaskToSubstep = (ssId, taskId) => {
@@ -343,17 +370,17 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       ...s,
       linkedTasks: [...(s.linkedTasks||[]), { taskId, showOnDashboard: false }]
     } : s);
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
+    commit({ substeps: newSubsteps });
     setTaskSearch(null);
     setSearchQ('');
-    doSave(newSubsteps);
+    saveNow();
   };
 
   const unlinkFromSubstep = (ssId, taskId) => {
     const cur = fieldsRef.current.substeps || [];
     const newSubsteps = cur.map(s => s.id === ssId ? { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== taskId) } : s);
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
-    doSave(newSubsteps);
+    commit({ substeps: newSubsteps });
+    saveNow();
   };
 
   const handleMoveTask = (fromSsId, taskId, toSsId) => {
@@ -379,14 +406,8 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
       return s;
     });
 
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-
-    doSave(newSubsteps);
+    commit({ substeps: newSubsteps });
+    saveNow();
   };
 
   const toggleTaskDashVisibility = (ssId, taskId) => {
@@ -397,17 +418,17 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
         lt.taskId === taskId ? { ...lt, showOnDashboard: !lt.showOnDashboard } : lt
       )
     } : s);
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
-    doSave(newSubsteps);
+    commit({ substeps: newSubsteps });
+    saveNow();
   };
 
   const toggleDisplayDays = (day) => {
-    setM(prev => ({
-      ...prev,
-      displayDays: prev.displayDays.includes(day)
-        ? prev.displayDays.filter(d => d !== day)
-        : [...prev.displayDays, day]
-    }));
+    const cur = fieldsRef.current.displayDays || [];
+    const next = cur.includes(day)
+      ? cur.filter(d => d !== day)
+      : [...cur, day];
+    commit({ displayDays: next });
+    saveNow();
   };
 
   const save = async () => {
@@ -458,8 +479,8 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
     softDeleteTask(ltObj.taskId);
     const cur = fieldsRef.current.substeps || [];
     const newSubsteps = cur.map(s => s.id === ssId ? { ...s, linkedTasks: (s.linkedTasks||[]).filter(lt => lt.taskId !== ltObj.taskId) } : s);
-    setM(prev => ({ ...prev, substeps: newSubsteps }));
-    doSave(newSubsteps);
+    commit({ substeps: newSubsteps });
+    saveNow();
   };
 
   const handleCreateAndLink = (ssId) => {
@@ -501,7 +522,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
 
         <label className="fl" style={{marginTop:0}}>TITLE *</label>
         <input type="text" placeholder="What's the milestone?" value={m.title}
-          onChange={e=>updateField('title',e.target.value)}
+          onChange={e=>updateFieldDebounced('title',e.target.value)}
           style={{width:'100%',fontSize:14,padding:'9px 12px',border:'1.5px solid var(--border)',borderRadius:'var(--r)',outline:'none',fontFamily:'inherit',background:'var(--surface)',color:'var(--text)'}}
           onFocus={e=>e.target.style.borderColor='var(--accent)'}
           onBlur={e=>e.target.style.borderColor='var(--border)'} />
@@ -605,7 +626,7 @@ export default function MilestoneModal({ milestone, onClose, onOpenTask, onCreat
           {/* ── SLIDE 1: Substeps ── */}
           <div className={`modal-section${tab===1?' active':''}`} style={{position:'relative'}}>
             <label className="fl">Notes</label>
-            <RichTextEditor value={m.notes || ''} onChange={v => updateField('notes', v)} />
+            <RichTextEditor value={m.notes || ''} onChange={v => updateFieldDebounced('notes', v)} />
 
             {subTotal > 0 && (
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>

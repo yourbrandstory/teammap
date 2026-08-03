@@ -79,6 +79,28 @@ const sanitizeTags = (raw) => {
   if (!Array.isArray(raw)) return [];
   return raw.filter(Boolean).filter(t => typeof t === 'string' || typeof t === 'number');
 };
+// PostgREST reports missing columns in several formats:
+//   - "Could not find the 'label_id' column of 'milestones' in the schema cache"  (PGRST204)
+//   - "column milestones.notes does not exist"                                     (42703, table-prefixed)
+//   - 'column "notes" of relation "milestones" does not exist'                     (raw Postgres)
+const extractBadColumn = (msg) => {
+  if (!msg || typeof msg !== 'string') return null;
+  let m = msg.match(/Could not find the ['"]([^'"]+)['"] column/);
+  if (m) return m[1];
+  m = msg.match(/column\s+["']?([A-Za-z_][A-Za-z0-9_.]*)["']?\s+/);
+  if (m) {
+    const name = m[1];
+    const i = name.lastIndexOf('.');
+    return i >= 0 ? name.slice(i + 1) : name;
+  }
+  return null;
+};
+const isColumnError = (err) => {
+  const msg = err?.message || '';
+  return err?.code === '42703' || err?.code === 'PGRST204'
+    || /column\s+.*\bdoes not exist/i.test(msg)
+    || /Could not find the .* column of .* in the schema cache/i.test(msg);
+};
 const msFromRow     = (r) => {
   let substeps = r.substeps || [];
   // Fallback: if substeps column is missing in DB but we saved them JSON-encoded in description
@@ -804,13 +826,11 @@ export const useStore = create((set, get) => ({
         }
         break;
       }
-      const isColumnError = error.code === '42703' || /column .+ does not exist/i.test(error.message);
-      if (!isColumnError) {
+      if (!isColumnError(error)) {
         console.error('[upsertMilestone] non-column error, giving up:', error);
         break;
       }
-      const colMatch = error.message.match(/column "([^"]+)"/);
-      const badCol = colMatch?.[1];
+      const badCol = extractBadColumn(error.message);
       if (!badCol || row[badCol] === undefined) {
         console.warn('[upsertMilestone] cannot determine bad column, giving up:', error.message);
         break;
